@@ -3,11 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ValueAI – AI that thinks with you</title>
+<title>ValueAI</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
 <style>
+/* ── SPA shell ── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+#spa-view{display:none}
+#spa-view.active{display:block}
+#spa-view.chat-view.active{display:flex}
+</style>
+<style data-page="home" id="style-home" class="page-style" style="display:none">*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --bg:#02020a;--bg2:#070714;--bg3:#0c0c1e;
   --cyan:#00f5ff;--violet:#8b5cf6;--pink:#f472b6;--emerald:#34d399;
@@ -167,30 +173,418 @@ footer{position:relative;z-index:1;border-top:1px solid var(--border);padding:3r
   .footer-grid{grid-template-columns:1fr 1fr}
   .plan-compare{grid-template-columns:1fr}
   .footer-bottom{flex-direction:column;text-align:center}
+}</style>
+<style data-page="chat" id="style-chat" class="page-style" style="display:none">*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#02020a;--bg2:#070714;--bg3:#0c0c1e;--bg4:#111128;
+  --cyan:#00f5ff;--violet:#8b5cf6;--pink:#f472b6;--emerald:#34d399;
+  --border:rgba(255,255,255,0.06);--border2:rgba(0,245,255,0.15);
+  --text:#f0f0ff;--text2:rgba(200,200,240,0.6);--text3:rgba(200,200,240,0.3);
+  --sidebar:220px;--font:'DM Sans',-apple-system,sans-serif;--font-display:'Syne',sans-serif;
 }
-</style>
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--text);font-family:var(--font);display:flex}
+
+/* ── Sidebar ── */
+.sidebar{width:var(--sidebar);flex-shrink:0;height:100vh;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.sidebar-top{padding:1rem .75rem;border-bottom:1px solid var(--border)}
+.logo-wrap{display:flex;align-items:center;gap:9px;text-decoration:none;padding:.4rem .5rem;border-radius:9px;margin-bottom:.5rem}
+.logo-mark{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--violet),var(--cyan));display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:15px;font-weight:800;color:#02020a;box-shadow:0 0 12px rgba(0,245,255,0.35)}
+.logo-text{font-family:var(--font-display);font-size:15px;font-weight:700;background:linear-gradient(90deg,#fff,var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.new-chat{display:flex;align-items:center;gap:.5rem;width:100%;padding:.55rem .75rem;border-radius:9px;border:1px solid var(--border2);background:transparent;color:var(--cyan);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;transition:background .2s,box-shadow .2s}
+.new-chat:hover{background:rgba(0,245,255,0.06);box-shadow:0 0 15px rgba(0,245,255,0.1)}
+.new-chat-icon{font-size:16px;line-height:1}
+.sidebar-section{padding:.75rem .75rem .25rem;font-family:var(--font-display);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3)}
+.sidebar-list{flex:1;overflow-y:auto;padding:.25rem .5rem}
+.sidebar-list::-webkit-scrollbar{width:4px}
+.sidebar-list::-webkit-scrollbar-track{background:transparent}
+.sidebar-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+.conv-item{padding:.5rem .65rem;border-radius:8px;cursor:pointer;transition:background .15s;display:flex;align-items:center;gap:.5rem}
+.conv-item:hover,.conv-item.active{background:rgba(255,255,255,0.04)}
+.conv-item.active{background:rgba(0,245,255,0.06);border:1px solid rgba(0,245,255,0.1)}
+.conv-dot{width:6px;height:6px;border-radius:50%;background:var(--violet);flex-shrink:0}
+.conv-txt{font-size:12.5px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4}
+.conv-item.active .conv-txt{color:var(--text)}
+.sidebar-bottom{padding:.75rem;border-top:1px solid var(--border)}
+.user-row{display:flex;align-items:center;gap:.6rem;padding:.5rem .5rem;border-radius:9px;cursor:pointer;transition:background .15s}
+.user-row:hover{background:rgba(255,255,255,0.04)}
+.user-avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--violet),var(--pink));display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:13px;font-weight:700;color:#fff;flex-shrink:0}
+.user-info{flex:1;min-width:0}
+.user-name{font-size:12.5px;font-weight:600;font-family:var(--font-display);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-plan{font-size:10.5px;color:var(--emerald);font-weight:600}
+.user-dots{color:var(--text3);font-size:16px;flex-shrink:0}
+
+/* ── Main chat area ── */
+.chat-main{flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden;position:relative}
+.chat-topbar{padding:.75rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:rgba(2,2,10,0.8);backdrop-filter:blur(20px);flex-shrink:0}
+.model-select{display:flex;align-items:center;gap:.5rem;padding:.35rem .8rem;border-radius:8px;border:1px solid var(--border);background:var(--bg3);cursor:pointer;color:var(--text2);font-size:13px;font-weight:500;transition:border-color .2s}
+.model-select:hover{border-color:var(--border2);color:var(--text)}
+.model-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan);box-shadow:0 0 6px var(--cyan);animation:pulse2 2s ease-in-out infinite}
+@keyframes pulse2{0%,100%{opacity:1}50%{opacity:.4}}
+.topbar-right{display:flex;align-items:center;gap:.65rem}
+.share-btn{padding:.35rem .8rem;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:12px;cursor:pointer;font-family:var(--font);transition:all .2s}
+.share-btn:hover{border-color:var(--border2);color:var(--text)}
+
+/* ── Messages ── */
+.messages{flex:1;overflow-y:auto;padding:2rem 0}
+.messages::-webkit-scrollbar{width:5px}
+.messages::-webkit-scrollbar-track{background:transparent}
+.messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+.msg-wrap{max-width:720px;margin:0 auto;padding:0 1.5rem;display:flex;flex-direction:column;gap:.25rem}
+
+/* Welcome state */
+.welcome{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:2rem;gap:1.25rem}
+.welcome-logo{width:60px;height:60px;border-radius:18px;background:linear-gradient(135deg,var(--violet),var(--cyan));display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:28px;font-weight:800;color:#02020a;box-shadow:0 0 30px rgba(0,245,255,0.4),0 0 60px rgba(139,92,246,0.2)}
+.welcome h2{font-family:var(--font-display);font-size:1.8rem;font-weight:800;letter-spacing:-.02em;background:linear-gradient(90deg,var(--text),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.welcome p{font-size:14px;color:var(--text2);max-width:380px;line-height:1.6}
+.suggestions{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;max-width:560px;width:100%}
+.sug{padding:.85rem 1rem;background:var(--bg3);border:1px solid var(--border);border-radius:12px;font-size:13px;color:var(--text2);cursor:pointer;text-align:left;transition:all .2s;line-height:1.45}
+.sug:hover{border-color:rgba(0,245,255,0.25);background:rgba(0,245,255,0.04);color:var(--text);box-shadow:0 0 20px rgba(0,245,255,0.06)}
+.sug strong{display:block;color:var(--text);font-weight:600;margin-bottom:.2rem;font-size:12.5px;font-family:var(--font-display)}
+
+/* Message bubbles */
+.msg-group{margin-bottom:1.5rem}
+.msg-row{display:flex;gap:.85rem;align-items:flex-start}
+.msg-row.user{flex-direction:row-reverse}
+.msg-avatar{width:32px;height:32px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:14px;font-weight:700;margin-top:2px}
+.msg-avatar.ai{background:linear-gradient(135deg,var(--violet),var(--cyan));color:#02020a;box-shadow:0 0 14px rgba(0,245,255,0.3)}
+.msg-avatar.user{background:rgba(255,255,255,0.08);border:1px solid var(--border);color:var(--text2)}
+.bubble{padding:.85rem 1.1rem;border-radius:18px;font-size:14.5px;line-height:1.7;max-width:580px}
+.bubble.ai{background:var(--bg3);border:1px solid var(--border);border-radius:4px 18px 18px 18px}
+.bubble.user{background:linear-gradient(135deg,rgba(139,92,246,0.2),rgba(0,245,255,0.12));border:1px solid rgba(0,245,255,0.18);border-radius:18px 4px 18px 18px}
+.bubble code{background:rgba(0,245,255,0.08);border:1px solid rgba(0,245,255,0.12);border-radius:5px;padding:.15em .4em;font-family:'Courier New',monospace;font-size:13px;color:var(--cyan)}
+.bubble pre{background:rgba(0,0,0,0.4);border:1px solid var(--border);border-radius:10px;padding:1rem;margin:.5rem 0;overflow-x:auto}
+.bubble pre code{background:none;border:none;padding:0;font-size:12.5px;color:#a5f3fc;line-height:1.6}
+.msg-actions{display:flex;gap:.4rem;margin-top:.4rem;padding-left:.2rem}
+.msg-action{padding:.25rem .5rem;border-radius:6px;border:1px solid transparent;background:transparent;color:var(--text3);font-size:11.5px;cursor:pointer;transition:all .15s;font-family:var(--font)}
+.msg-action:hover{border-color:var(--border);background:var(--bg3);color:var(--text2)}
+.typing-indicator{display:flex;gap:5px;align-items:center;padding:.85rem 1.1rem;background:var(--bg3);border:1px solid var(--border);border-radius:4px 18px 18px 18px;width:fit-content}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--cyan);opacity:.4;animation:blink 1.4s ease-in-out infinite}
+.dot:nth-child(2){animation-delay:.2s}.dot:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,80%,100%{opacity:.4}40%{opacity:1}}
+
+/* ── Input area ── */
+.input-area{padding:1rem 1.5rem 1.25rem;border-top:1px solid var(--border);background:rgba(2,2,10,0.7);backdrop-filter:blur(20px);flex-shrink:0}
+.input-wrap{max-width:720px;margin:0 auto}
+.input-box{background:var(--bg3);border:1px solid var(--border2);border-radius:16px;overflow:hidden;box-shadow:0 0 30px rgba(0,245,255,0.06);transition:border-color .2s,box-shadow .2s}
+.input-box:focus-within{border-color:rgba(0,245,255,0.3);box-shadow:0 0 40px rgba(0,245,255,0.1)}
+.input-toolbar{display:flex;align-items:center;gap:.4rem;padding:.65rem 1rem .25rem;border-bottom:1px solid var(--border)}
+.toolbar-btn{padding:.3rem .6rem;border-radius:7px;border:1px solid transparent;background:transparent;color:var(--text3);font-size:12.5px;cursor:pointer;transition:all .15s;font-family:var(--font);display:flex;align-items:center;gap:.3rem}
+.toolbar-btn:hover{border-color:var(--border);background:rgba(255,255,255,0.04);color:var(--text2)}
+.toolbar-sep{width:1px;height:16px;background:var(--border);margin:0 .1rem}
+textarea{width:100%;background:transparent;border:none;outline:none;padding:.85rem 1rem .5rem;font-family:var(--font);font-size:14.5px;color:var(--text);resize:none;min-height:56px;max-height:200px;line-height:1.6}
+textarea::placeholder{color:var(--text3)}
+.input-bottom{display:flex;align-items:center;justify-content:space-between;padding:.5rem 1rem .75rem}
+.input-info{font-size:11.5px;color:var(--text3)}
+.send-row{display:flex;gap:.5rem;align-items:center}
+.stop-btn{padding:.4rem .9rem;border-radius:8px;border:1px solid rgba(244,114,182,0.3);background:rgba(244,114,182,0.08);color:var(--pink);font-family:var(--font);font-size:12.5px;font-weight:600;cursor:pointer;display:none}
+.send-btn{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--violet),var(--cyan));display:flex;align-items:center;justify-content:center;cursor:pointer;border:none;box-shadow:0 0 14px rgba(0,245,255,0.3);transition:box-shadow .2s,transform .1s;font-size:16px;color:#02020a;font-weight:700}
+.send-btn:hover{box-shadow:0 0 25px rgba(0,245,255,0.55);transform:scale(1.04)}
+.send-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.disclaimer{text-align:center;font-size:11px;color:var(--text3);margin-top:.65rem}
+
+@media(max-width:700px){
+  .sidebar{display:none}
+  .suggestions{grid-template-columns:1fr}
+}</style>
+<style data-page="pricing" id="style-pricing" class="page-style" style="display:none">*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#02020a;--bg2:#070714;--bg3:#0c0c1e;--cyan:#00f5ff;--violet:#8b5cf6;--pink:#f472b6;--emerald:#34d399;--border:rgba(255,255,255,0.06);--border2:rgba(0,245,255,0.15);--text:#f0f0ff;--text2:rgba(200,200,240,0.6);--text3:rgba(200,200,240,0.3);--font:'DM Sans',-apple-system,sans-serif;--font-display:'Syne',sans-serif;}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--font);overflow-x:hidden;min-height:100vh}
+.bg-grid{position:fixed;inset:0;z-index:0;background-image:linear-gradient(rgba(0,245,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,245,255,0.025) 1px,transparent 1px);background-size:60px 60px;pointer-events:none}
+.orb{position:fixed;border-radius:50%;filter:blur(100px);pointer-events:none;z-index:0}
+.orb1{width:600px;height:600px;background:radial-gradient(circle,rgba(139,92,246,0.15) 0%,transparent 65%);top:-150px;left:-100px}
+.orb2{width:500px;height:500px;background:radial-gradient(circle,rgba(0,245,255,0.1) 0%,transparent 65%);bottom:-100px;right:-100px}
+nav{position:sticky;top:0;z-index:100;padding:.9rem 2rem;display:flex;align-items:center;justify-content:space-between;background:rgba(2,2,10,0.8);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo-mark{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--violet),var(--cyan));display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:18px;font-weight:800;color:#02020a;box-shadow:0 0 20px rgba(0,245,255,0.4)}
+.logo-text{font-family:var(--font-display);font-size:18px;font-weight:700;background:linear-gradient(90deg,#fff,var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.nav-links{display:flex;align-items:center;gap:1.5rem}
+.nav-links a{color:var(--text2);text-decoration:none;font-size:14px;font-weight:500;transition:color .2s}
+.nav-links a:hover{color:var(--text)}
+.nav-cta{display:flex;align-items:center;gap:.75rem}
+.btn-ghost{padding:.5rem 1.1rem;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--cyan);font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;transition:background .2s}
+.btn-ghost:hover{background:rgba(0,245,255,0.07)}
+.btn-primary{padding:.5rem 1.2rem;border-radius:8px;border:none;background:linear-gradient(135deg,var(--violet),var(--cyan));color:#02020a;font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;box-shadow:0 0 20px rgba(0,245,255,0.25)}
+
+/* ── Page content ── */
+main{position:relative;z-index:1;padding:5rem 1.5rem 6rem}
+.pricing-header{text-align:center;max-width:680px;margin:0 auto 4rem}
+.section-tag{font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--cyan);margin-bottom:.75rem}
+h1{font-family:var(--font-display);font-size:clamp(2.5rem,5vw,4rem);font-weight:800;letter-spacing:-.04em;line-height:1.05;margin-bottom:1rem}
+h1 em{font-style:normal;background:linear-gradient(90deg,var(--violet),var(--cyan),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.pricing-sub{font-size:1.05rem;color:var(--text2);line-height:1.7;font-weight:300}
+.free-pill{display:inline-flex;align-items:center;gap:7px;padding:.4rem 1rem;border-radius:100px;border:1px solid rgba(52,211,153,0.3);background:rgba(52,211,153,0.07);font-size:12px;font-weight:700;font-family:var(--font-display);color:var(--emerald);letter-spacing:.06em;margin-bottom:1.5rem}
+.free-pill::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--emerald);box-shadow:0 0 8px var(--emerald);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* Plans grid */
+.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;max-width:980px;margin:0 auto 4rem}
+.plan{background:rgba(7,7,20,0.85);border:1px solid var(--border);border-radius:22px;padding:2rem;display:flex;flex-direction:column;gap:1rem;transition:border-color .3s,box-shadow .3s}
+.plan:hover{border-color:rgba(0,245,255,0.2);box-shadow:0 0 50px rgba(0,245,255,0.06)}
+.plan.featured{border-color:rgba(0,245,255,0.3);background:linear-gradient(160deg,rgba(12,12,30,0.98),rgba(7,7,20,0.98));box-shadow:0 0 80px rgba(0,245,255,0.1),0 0 120px rgba(139,92,246,0.06);position:relative}
+.plan.featured::before{content:'MOST POPULAR';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(90deg,var(--violet),var(--cyan));color:#02020a;font-family:var(--font-display);font-size:10px;font-weight:800;letter-spacing:.1em;padding:.3rem .8rem;border-radius:100px;white-space:nowrap}
+.plan-name{font-family:var(--font-display);font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text3)}
+.plan-price-wrap{display:flex;align-items:baseline;gap:.4rem}
+.plan-price{font-family:var(--font-display);font-size:3rem;font-weight:800;letter-spacing:-.04em;line-height:1}
+.plan.free1 .plan-price{color:var(--text)}
+.plan.featured .plan-price,.plan.enterprise .plan-price{background:linear-gradient(135deg,var(--cyan),var(--violet));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.plan-period{font-size:13px;color:var(--text3)}
+.plan-old-price{font-family:var(--font-display);font-size:13px;color:var(--text3);text-decoration:line-through}
+.plan-desc{font-size:13.5px;color:var(--text2);line-height:1.55}
+.plan-cta{display:block;text-align:center;padding:.75rem;border-radius:11px;font-family:var(--font-display);font-size:14px;font-weight:700;text-decoration:none;cursor:pointer;border:none;transition:all .2s}
+.plan.free1 .plan-cta{background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:var(--font-display)}
+.plan.free1 .plan-cta:hover{border-color:var(--border2);background:rgba(0,245,255,0.04)}
+.plan.featured .plan-cta{background:linear-gradient(135deg,var(--violet),var(--cyan));color:#02020a;box-shadow:0 0 20px rgba(0,245,255,0.3)}
+.plan.featured .plan-cta:hover{box-shadow:0 0 35px rgba(0,245,255,0.55)}
+.plan.enterprise .plan-cta{background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.3);color:var(--violet)}
+.plan.enterprise .plan-cta:hover{background:rgba(139,92,246,0.2)}
+.plan-divider{height:1px;background:var(--border)}
+.plan-features{display:flex;flex-direction:column;gap:.55rem;flex:1}
+.pf{font-size:13px;color:var(--text2);display:flex;align-items:flex-start;gap:.6rem;line-height:1.45}
+.pf-check{color:var(--emerald);font-weight:700;flex-shrink:0;margin-top:.05rem}
+.pf-dash{color:var(--text3);flex-shrink:0;margin-top:.05rem}
+
+/* Compare table */
+.compare-wrap{max-width:900px;margin:0 auto}
+.compare-wrap h2{font-family:var(--font-display);font-size:2rem;font-weight:800;letter-spacing:-.03em;text-align:center;margin-bottom:.5rem}
+.compare-wrap p{text-align:center;color:var(--text2);font-size:14px;margin-bottom:2.5rem}
+.compare-table{width:100%;border-collapse:collapse}
+.compare-table th{font-family:var(--font-display);font-size:13px;font-weight:700;padding:.85rem 1rem;text-align:center;border-bottom:1px solid var(--border)}
+.compare-table th:first-child{text-align:left;color:var(--text2)}
+.compare-table th.highlight{color:var(--cyan)}
+.compare-table td{padding:.75rem 1rem;border-bottom:1px solid var(--border);font-size:13.5px;color:var(--text2);text-align:center}
+.compare-table td:first-child{text-align:left;color:var(--text)}
+.compare-table tr:hover td{background:rgba(255,255,255,0.015)}
+.tick{color:var(--emerald);font-size:15px}
+.cross{color:var(--text3)}
+.section-row td{background:rgba(0,245,255,0.03);border-top:1px solid rgba(0,245,255,0.1);font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--cyan);text-align:left !important;padding:.6rem 1rem}
+
+/* FAQ */
+.faq-wrap{max-width:700px;margin:5rem auto 0}
+.faq-wrap h2{font-family:var(--font-display);font-size:2rem;font-weight:800;letter-spacing:-.03em;text-align:center;margin-bottom:2.5rem}
+.faq-item{border:1px solid var(--border);border-radius:14px;margin-bottom:.75rem;overflow:hidden;transition:border-color .2s}
+.faq-item:hover{border-color:rgba(0,245,255,0.2)}
+.faq-q{padding:1.1rem 1.25rem;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:1rem;font-weight:600;font-size:14.5px;user-select:none}
+.faq-arrow{color:var(--text3);font-size:18px;transition:transform .2s;flex-shrink:0}
+.faq-item.open .faq-arrow{transform:rotate(45deg);color:var(--cyan)}
+.faq-a{max-height:0;overflow:hidden;transition:max-height .3s ease,padding .3s}
+.faq-item.open .faq-a{max-height:300px}
+.faq-a-inner{padding:0 1.25rem 1.1rem;font-size:14px;color:var(--text2);line-height:1.7}
+
+@media(max-width:768px){
+  .plans{grid-template-columns:1fr}
+  .nav-links{display:none}
+}</style>
+<style data-page="signup" id="style-signup" class="page-style" style="display:none">*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#02020a;--bg2:#070714;--bg3:#0c0c1e;--cyan:#00f5ff;--violet:#8b5cf6;--pink:#f472b6;--emerald:#34d399;--border:rgba(255,255,255,0.06);--border2:rgba(0,245,255,0.2);--text:#f0f0ff;--text2:rgba(200,200,240,0.6);--text3:rgba(200,200,240,0.3);--font:'DM Sans',-apple-system,sans-serif;--font-display:'Syne',sans-serif;}
+html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:var(--font)}
+body{display:flex;align-items:center;justify-content:center;padding:2rem;min-height:100vh}
+.bg-grid{position:fixed;inset:0;z-index:0;background-image:linear-gradient(rgba(0,245,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,245,255,0.025) 1px,transparent 1px);background-size:60px 60px;pointer-events:none}
+.orb{position:fixed;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0}
+.orb1{width:600px;height:600px;background:radial-gradient(circle,rgba(139,92,246,0.15) 0%,transparent 70%);top:-150px;right:-100px}
+.orb2{width:400px;height:400px;background:radial-gradient(circle,rgba(0,245,255,0.1) 0%,transparent 70%);bottom:0;left:-50px}
+.card{position:relative;z-index:1;width:100%;max-width:460px;padding:2.5rem;background:rgba(7,7,20,0.92);border:1px solid rgba(0,245,255,0.15);border-radius:24px;backdrop-filter:blur(30px);box-shadow:0 0 80px rgba(0,245,255,0.08);animation:slideUp .6s ease both}
+@keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.back{position:fixed;top:1.5rem;left:1.5rem;z-index:10;color:var(--text3);text-decoration:none;font-size:13px;display:flex;align-items:center;gap:5px;transition:color .2s}
+.back:hover{color:var(--cyan)}
+.logo-wrap{display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:1.75rem}
+.logo-mark{width:40px;height:40px;border-radius:11px;background:linear-gradient(135deg,var(--violet),var(--cyan));display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:20px;font-weight:800;color:#02020a;box-shadow:0 0 20px rgba(0,245,255,0.4),0 0 40px rgba(139,92,246,0.2)}
+.logo-text{font-family:var(--font-display);font-size:20px;font-weight:700;background:linear-gradient(90deg,#fff,var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;text-align:center;margin-bottom:.3rem;letter-spacing:-.02em}
+.sub{font-size:14px;color:var(--text2);text-align:center}
+.free-banner{display:flex;align-items:center;justify-content:center;gap:7px;background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.25);border-radius:100px;padding:.38rem .9rem;font-size:12px;color:var(--emerald);font-weight:700;font-family:var(--font-display);letter-spacing:.05em;margin:1rem auto 1.5rem;width:fit-content}
+.free-banner::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--emerald);box-shadow:0 0 8px var(--emerald);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.oauth{display:flex;flex-direction:column;gap:.6rem;margin-bottom:1.5rem}
+.oauth-btn{display:flex;align-items:center;justify-content:center;gap:.65rem;padding:.72rem;border-radius:11px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-family:var(--font);font-size:14px;font-weight:500;cursor:pointer;text-decoration:none;transition:border-color .2s,background .2s,box-shadow .2s}
+.oauth-btn:hover{border-color:rgba(0,245,255,0.3);background:rgba(0,245,255,0.05);box-shadow:0 0 20px rgba(0,245,255,0.1)}
+.divider{display:flex;align-items:center;gap:.75rem;margin-bottom:1.25rem}
+.div-line{flex:1;height:1px;background:var(--border)}
+.div-txt{font-size:12px;color:var(--text3)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+.field{margin-bottom:.85rem}
+label{display:block;font-size:11px;font-weight:700;font-family:var(--font-display);color:var(--text3);letter-spacing:.07em;text-transform:uppercase;margin-bottom:.4rem}
+input[type=text],input[type=email],input[type=password]{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:.72rem .9rem;font-family:var(--font);font-size:14px;color:var(--text);outline:none;transition:border-color .2s,box-shadow .2s}
+input:focus{border-color:rgba(0,245,255,0.4);box-shadow:0 0 0 3px rgba(0,245,255,0.08)}
+input::placeholder{color:var(--text3)}
+.terms{font-size:12px;color:var(--text3);text-align:center;margin:.85rem 0;line-height:1.5}
+.terms a{color:var(--cyan);text-decoration:none;font-weight:500}
+.submit{width:100%;padding:.82rem;border-radius:12px;border:none;cursor:pointer;background:linear-gradient(135deg,var(--violet),var(--cyan));color:#02020a;font-family:var(--font-display);font-size:15px;font-weight:800;box-shadow:0 0 20px rgba(0,245,255,0.25);transition:box-shadow .2s,transform .15s}
+.submit:hover{box-shadow:0 0 40px rgba(0,245,255,0.5);transform:translateY(-1px)}
+.foot{text-align:center;margin-top:1.25rem;font-size:13px;color:var(--text3)}
+.foot a{color:var(--cyan);text-decoration:none;font-weight:500}</style>
+<style data-page="login" id="style-login" class="page-style" style="display:none">*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#02020a;--bg2:#070714;--bg3:#0c0c1e;--cyan:#00f5ff;--violet:#8b5cf6;--pink:#f472b6;--border:rgba(255,255,255,0.06);--border2:rgba(0,245,255,0.2);--text:#f0f0ff;--text2:rgba(200,200,240,0.6);--text3:rgba(200,200,240,0.3);--font:'DM Sans',-apple-system,sans-serif;--font-display:'Syne',sans-serif;}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font-family:var(--font);display:flex;align-items:center;justify-content:center;min-height:100vh;overflow-x:hidden}
+.bg-grid{position:fixed;inset:0;z-index:0;background-image:linear-gradient(rgba(0,245,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,245,255,0.025) 1px,transparent 1px);background-size:60px 60px;pointer-events:none}
+.orb{position:fixed;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0}
+.orb1{width:500px;height:500px;background:radial-gradient(circle,rgba(139,92,246,0.18) 0%,transparent 70%);top:-100px;left:-100px}
+.orb2{width:400px;height:400px;background:radial-gradient(circle,rgba(0,245,255,0.12) 0%,transparent 70%);bottom:-50px;right:-50px}
+.card{position:relative;z-index:1;width:100%;max-width:420px;padding:2.5rem;background:rgba(7,7,20,0.92);border:1px solid rgba(0,245,255,0.15);border-radius:24px;backdrop-filter:blur(30px);box-shadow:0 0 80px rgba(0,245,255,0.08),0 0 120px rgba(139,92,246,0.06);animation:slideUp .6s ease both}
+@keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.back{position:fixed;top:1.5rem;left:1.5rem;z-index:10;color:var(--text3);text-decoration:none;font-size:13px;display:flex;align-items:center;gap:5px;transition:color .2s}
+.back:hover{color:var(--cyan)}
+.logo-wrap{display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:2rem}
+.logo-mark{width:40px;height:40px;border-radius:11px;background:linear-gradient(135deg,var(--violet),var(--cyan));display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:20px;font-weight:800;color:#02020a;box-shadow:0 0 20px rgba(0,245,255,0.4),0 0 40px rgba(139,92,246,0.2)}
+.logo-text{font-family:var(--font-display);font-size:20px;font-weight:700;background:linear-gradient(90deg,#fff,var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;text-align:center;margin-bottom:.4rem;letter-spacing:-.02em}
+.sub{font-size:14px;color:var(--text2);text-align:center;margin-bottom:1.75rem}
+.oauth{display:flex;flex-direction:column;gap:.65rem;margin-bottom:1.5rem}
+.oauth-btn{display:flex;align-items:center;justify-content:center;gap:.65rem;padding:.75rem;border-radius:12px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-family:var(--font);font-size:14px;font-weight:500;cursor:pointer;text-decoration:none;transition:border-color .2s,background .2s,box-shadow .2s}
+.oauth-btn:hover{border-color:rgba(0,245,255,0.3);background:rgba(0,245,255,0.05);box-shadow:0 0 20px rgba(0,245,255,0.1)}
+.oauth-icon{width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:15px}
+.divider{display:flex;align-items:center;gap:.75rem;margin-bottom:1.5rem}
+.div-line{flex:1;height:1px;background:var(--border)}
+.div-txt{font-size:12px;color:var(--text3)}
+.field{margin-bottom:1rem}
+label{display:block;font-size:11px;font-weight:700;font-family:var(--font-display);color:var(--text3);letter-spacing:.07em;text-transform:uppercase;margin-bottom:.45rem}
+input[type=email],input[type=password]{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:.75rem 1rem;font-family:var(--font);font-size:14px;color:var(--text);outline:none;transition:border-color .2s,box-shadow .2s}
+input:focus{border-color:rgba(0,245,255,0.4);box-shadow:0 0 0 3px rgba(0,245,255,0.08)}
+input::placeholder{color:var(--text3)}
+.field-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:.45rem}
+.forgot{font-size:12px;color:var(--cyan);text-decoration:none;transition:opacity .2s;font-weight:500}
+.forgot:hover{opacity:.7}
+.submit{width:100%;padding:.82rem;border-radius:12px;border:none;cursor:pointer;margin-top:.25rem;background:linear-gradient(135deg,var(--violet),var(--cyan));color:#02020a;font-family:var(--font-display);font-size:15px;font-weight:800;box-shadow:0 0 20px rgba(0,245,255,0.25);transition:box-shadow .2s,transform .15s}
+.submit:hover{box-shadow:0 0 40px rgba(0,245,255,0.5);transform:translateY(-1px)}
+.foot{text-align:center;margin-top:1.5rem;font-size:13px;color:var(--text3)}
+.foot a{color:var(--cyan);text-decoration:none;font-weight:500}
+.foot a:hover{text-decoration:underline}</style>
+<style data-page="company" id="style-company" class="page-style" style="display:none">*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#02020a;--bg2:#070714;--bg3:#0c0c1e;--cyan:#00f5ff;--violet:#8b5cf6;--pink:#f472b6;--emerald:#34d399;--border:rgba(255,255,255,0.06);--border2:rgba(0,245,255,0.15);--text:#f0f0ff;--text2:rgba(200,200,240,0.6);--text3:rgba(200,200,240,0.3);--font:'DM Sans',-apple-system,sans-serif;--font-display:'Syne',sans-serif;}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--font);overflow-x:hidden;min-height:100vh}
+.bg-grid{position:fixed;inset:0;z-index:0;background-image:linear-gradient(rgba(0,245,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,245,255,0.025) 1px,transparent 1px);background-size:60px 60px;pointer-events:none}
+.orb{position:fixed;border-radius:50%;filter:blur(100px);pointer-events:none;z-index:0}
+.orb1{width:700px;height:700px;background:radial-gradient(circle,rgba(139,92,246,0.14) 0%,transparent 65%);top:-200px;right:-100px}
+.orb2{width:500px;height:500px;background:radial-gradient(circle,rgba(0,245,255,0.09) 0%,transparent 65%);bottom:0;left:-100px}
+nav{position:sticky;top:0;z-index:100;padding:.9rem 2rem;display:flex;align-items:center;justify-content:space-between;background:rgba(2,2,10,0.8);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo-mark{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--violet),var(--cyan));display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:18px;font-weight:800;color:#02020a;box-shadow:0 0 20px rgba(0,245,255,0.4)}
+.logo-text{font-family:var(--font-display);font-size:18px;font-weight:700;background:linear-gradient(90deg,#fff,var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.nav-links{display:flex;align-items:center;gap:1.5rem}
+.nav-links a{color:var(--text2);text-decoration:none;font-size:14px;font-weight:500;transition:color .2s}
+.nav-links a:hover{color:var(--text)}
+.nav-cta{display:flex;align-items:center;gap:.75rem}
+.btn-ghost{padding:.5rem 1.1rem;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--cyan);font-size:13px;font-weight:600;cursor:pointer;text-decoration:none}
+.btn-primary{padding:.5rem 1.2rem;border-radius:8px;border:none;background:linear-gradient(135deg,var(--violet),var(--cyan));color:#02020a;font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;box-shadow:0 0 20px rgba(0,245,255,0.25)}
+main{position:relative;z-index:1}
+
+/* Hero */
+.hero{padding:7rem 1.5rem 5rem;text-align:center;max-width:780px;margin:0 auto}
+.tag{font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--cyan);margin-bottom:.75rem}
+.hero h1{font-family:var(--font-display);font-size:clamp(2.5rem,5vw,4rem);font-weight:800;letter-spacing:-.04em;line-height:1.05;margin-bottom:1.25rem}
+.hero h1 span{background:linear-gradient(90deg,var(--violet),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero p{font-size:1.05rem;color:var(--text2);line-height:1.8;font-weight:300;max-width:580px;margin:0 auto}
+
+/* Mission */
+.mission{max-width:820px;margin:0 auto;padding:2rem 1.5rem 5rem}
+.mission-card{background:rgba(7,7,20,0.85);border:1px solid rgba(0,245,255,0.15);border-radius:24px;padding:3rem;box-shadow:0 0 80px rgba(0,245,255,0.06)}
+.mission-card h2{font-family:var(--font-display);font-size:1.6rem;font-weight:800;letter-spacing:-.02em;margin-bottom:1.25rem}
+.mission-card h2 span{color:var(--cyan)}
+.mission-card p{font-size:15px;color:var(--text2);line-height:1.85;margin-bottom:1rem;font-weight:300}
+
+/* Values */
+.values{max-width:1000px;margin:0 auto;padding:0 1.5rem 5rem;text-align:center}
+.values h2{font-family:var(--font-display);font-size:2rem;font-weight:800;letter-spacing:-.03em;margin-bottom:.5rem}
+.values .sub{font-size:14px;color:var(--text2);margin-bottom:2.5rem}
+.values-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.1rem}
+.val{background:rgba(7,7,20,0.7);border:1px solid var(--border);border-radius:18px;padding:1.75rem;text-align:left;transition:border-color .2s}
+.val:hover{border-color:rgba(139,92,246,0.25)}
+.val-num{font-family:var(--font-display);font-size:2rem;font-weight:800;letter-spacing:-.04em;background:linear-gradient(135deg,var(--cyan),var(--violet));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.75rem}
+.val h3{font-family:var(--font-display);font-size:1rem;font-weight:700;margin-bottom:.45rem}
+.val p{font-size:13px;color:var(--text2);line-height:1.6}
+
+/* Team */
+.team-section{max-width:900px;margin:0 auto;padding:0 1.5rem 5rem;text-align:center}
+.team-section h2{font-family:var(--font-display);font-size:2rem;font-weight:800;letter-spacing:-.03em;margin-bottom:.5rem}
+.team-section .sub{font-size:14px;color:var(--text2);margin-bottom:2.5rem}
+.team-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1.1rem}
+.member{background:rgba(7,7,20,0.7);border:1px solid var(--border);border-radius:18px;padding:1.5rem;transition:border-color .2s}
+.member:hover{border-color:rgba(0,245,255,0.2)}
+.member-avatar{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--violet),var(--pink));margin:0 auto .85rem;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:24px;font-weight:800;color:#fff;box-shadow:0 0 20px rgba(139,92,246,0.3)}
+.member-name{font-family:var(--font-display);font-size:.95rem;font-weight:700;margin-bottom:.25rem}
+.member-role{font-size:12px;color:var(--cyan);font-weight:600;margin-bottom:.4rem}
+.member-prev{font-size:12px;color:var(--text3)}
+
+/* CTA */
+.cta{text-align:center;padding:3rem 1.5rem 7rem}
+.cta h2{font-family:var(--font-display);font-size:2.5rem;font-weight:800;letter-spacing:-.03em;margin-bottom:.75rem}
+.cta p{font-size:1rem;color:var(--text2);margin-bottom:2rem;font-weight:300}
+.btn-hero{padding:.85rem 2rem;border-radius:12px;border:none;background:linear-gradient(135deg,var(--violet),var(--cyan));color:#02020a;font-family:var(--font-display);font-size:15px;font-weight:800;cursor:pointer;text-decoration:none;box-shadow:0 0 30px rgba(0,245,255,0.35);display:inline-block}
+
+@media(max-width:768px){.nav-links{display:none}}</style>
+<style data-page="research" id="style-research" class="page-style" style="display:none">*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#02020a;--bg2:#070714;--bg3:#0c0c1e;--cyan:#00f5ff;--violet:#8b5cf6;--pink:#f472b6;--emerald:#34d399;--border:rgba(255,255,255,0.06);--border2:rgba(0,245,255,0.15);--text:#f0f0ff;--text2:rgba(200,200,240,0.6);--text3:rgba(200,200,240,0.3);--font:'DM Sans',-apple-system,sans-serif;--font-display:'Syne',sans-serif;}
+body{background:var(--bg);color:var(--text);font-family:var(--font);overflow-x:hidden;min-height:100vh}
+.bg-grid{position:fixed;inset:0;z-index:0;background-image:linear-gradient(rgba(0,245,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,245,255,0.025) 1px,transparent 1px);background-size:60px 60px;pointer-events:none}
+.orb{position:fixed;border-radius:50%;filter:blur(100px);pointer-events:none;z-index:0}
+.orb1{width:600px;height:600px;background:radial-gradient(circle,rgba(139,92,246,0.15) 0%,transparent 65%);top:-100px;left:-150px}
+.orb2{width:500px;height:500px;background:radial-gradient(circle,rgba(0,245,255,0.1) 0%,transparent 65%);bottom:0;right:-100px}
+nav{position:sticky;top:0;z-index:100;padding:.9rem 2rem;display:flex;align-items:center;justify-content:space-between;background:rgba(2,2,10,0.8);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo-mark{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--violet),var(--cyan));display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:18px;font-weight:800;color:#02020a;box-shadow:0 0 20px rgba(0,245,255,0.4)}
+.logo-text{font-family:var(--font-display);font-size:18px;font-weight:700;background:linear-gradient(90deg,#fff,var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.nav-links{display:flex;align-items:center;gap:1.5rem}
+.nav-links a{color:var(--text2);text-decoration:none;font-size:14px;font-weight:500;transition:color .2s}
+.nav-links a:hover,.nav-links a.active{color:var(--text)}
+.nav-cta{display:flex;align-items:center;gap:.75rem}
+.btn-ghost{padding:.5rem 1.1rem;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--cyan);font-size:13px;font-weight:600;cursor:pointer;text-decoration:none}
+.btn-primary{padding:.5rem 1.2rem;border-radius:8px;border:none;background:linear-gradient(135deg,var(--violet),var(--cyan));color:#02020a;font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;box-shadow:0 0 20px rgba(0,245,255,0.25)}
+main{position:relative;z-index:1;max-width:960px;margin:0 auto;padding:5rem 1.5rem 6rem}
+.tag{font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--cyan);margin-bottom:.75rem}
+h1{font-family:var(--font-display);font-size:clamp(2.5rem,5vw,3.8rem);font-weight:800;letter-spacing:-.04em;line-height:1.05;margin-bottom:1rem}
+.hero-sub{font-size:1.05rem;color:var(--text2);line-height:1.75;font-weight:300;max-width:560px;margin-bottom:4rem}
+
+.research-areas{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin-bottom:4rem}
+.area{background:rgba(7,7,20,0.8);border:1px solid var(--border);border-radius:18px;padding:1.75rem;transition:border-color .2s,box-shadow .2s}
+.area:hover{border-color:rgba(0,245,255,0.2);box-shadow:0 0 30px rgba(0,245,255,0.06)}
+.area-icon{font-size:28px;margin-bottom:.9rem;display:block}
+.area h3{font-family:var(--font-display);font-size:1.05rem;font-weight:700;margin-bottom:.5rem}
+.area p{font-size:13px;color:var(--text2);line-height:1.6}
+
+h2{font-family:var(--font-display);font-size:1.8rem;font-weight:800;letter-spacing:-.03em;margin-bottom:.5rem}
+.section-sub{font-size:14px;color:var(--text2);margin-bottom:2rem}
+
+.papers{display:flex;flex-direction:column;gap:1rem}
+.paper{background:rgba(7,7,20,0.8);border:1px solid var(--border);border-radius:16px;padding:1.5rem 1.75rem;display:flex;align-items:flex-start;gap:1.25rem;transition:border-color .2s,box-shadow .2s;cursor:pointer}
+.paper:hover{border-color:rgba(0,245,255,0.2);box-shadow:0 0 25px rgba(0,245,255,0.06)}
+.paper-tag{padding:.25rem .65rem;border-radius:100px;font-family:var(--font-display);font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;white-space:nowrap;flex-shrink:0;margin-top:.1rem}
+.pt-align{background:rgba(0,245,255,0.08);border:1px solid rgba(0,245,255,0.2);color:var(--cyan)}
+.pt-safety{background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.2);color:var(--emerald)}
+.pt-interp{background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.25);color:var(--violet)}
+.paper-body{flex:1;min-width:0}
+.paper h4{font-family:var(--font-display);font-size:1rem;font-weight:700;margin-bottom:.35rem;line-height:1.3}
+.paper p{font-size:13px;color:var(--text2);line-height:1.55;margin-bottom:.5rem}
+.paper-meta{font-size:12px;color:var(--text3)}
+.paper-arrow{color:var(--text3);font-size:18px;flex-shrink:0;margin-top:.1rem;transition:color .2s}
+.paper:hover .paper-arrow{color:var(--cyan)}
+
+@media(max-width:768px){.nav-links{display:none}}</style>
 </head>
 <body>
+<div id="view-home" class="spa-view" data-page="home">
 <div class="bg-grid"></div>
 <div class="orb orb1"></div>
 <div class="orb orb2"></div>
 <div class="orb orb3"></div>
 
 <nav>
-  <a href="index.html" class="nav-logo">
+  <a href="#home" onclick="navigate('home');return false;" class="nav-logo">
     <div class="logo-mark">V</div>
     <span class="logo-text">ValueAI</span>
   </a>
   <div class="nav-links">
     <a href="#features">Features</a>
-    <a href="pricing.html">Pricing</a>
+    <a href="#pricing" onclick="navigate('pricing');return false;">Pricing</a>
     <a href="#usecases">Use cases</a>
-    <a href="research.html">Research</a>
-    <a href="company.html">Company</a>
+    <a href="#research" onclick="navigate('research');return false;">Research</a>
+    <a href="#company" onclick="navigate('company');return false;">Company</a>
   </div>
   <div class="nav-cta">
-    <a href="login.html" class="btn-ghost">Log in</a>
-    <a href="signup.html" class="btn-primary">Start free</a>
+    <a href="#login" onclick="navigate('login');return false;" class="btn-ghost">Log in</a>
+    <a href="#signup" onclick="navigate('signup');return false;" class="btn-primary">Start free</a>
   </div>
 </nav>
 
@@ -204,8 +598,8 @@ footer{position:relative;z-index:1;border-top:1px solid var(--border);padding:3r
     </h1>
     <p class="hero-sub">ValueAI is your intelligent AI assistant — thoughtful, capable, safe. Write, analyze, code, think. Every premium feature, completely free forever.</p>
     <div class="hero-cta">
-      <a href="signup.html" class="btn-hero">Start for free →</a>
-      <a href="chat.html" class="btn-hero-ghost">Try ValueAI now</a>
+      <a href="#signup" onclick="navigate('signup');return false;" class="btn-hero">Start for free →</a>
+      <a href="#chat" onclick="navigate('chat');return false;" class="btn-hero-ghost">Try ValueAI now</a>
     </div>
     <p class="hero-note"><span>No credit card.</span> No trial period. Every feature unlocked from day one.</p>
   </div>
@@ -350,8 +744,8 @@ This returns a dictionary of only the duplicates and their counts. Want me to ad
       <h2>Ready to think <span class="accent">bigger?</span></h2>
       <p>Join millions of people who use ValueAI every day to work smarter, write better, and build faster. No card, no catch.</p>
       <div class="cta-btns">
-        <a href="signup.html" class="btn-hero">Create free account →</a>
-        <a href="chat.html" class="btn-hero-ghost">Try without signing up</a>
+        <a href="#signup" onclick="navigate('signup');return false;" class="btn-hero">Create free account →</a>
+        <a href="#chat" onclick="navigate('chat');return false;" class="btn-hero-ghost">Try without signing up</a>
       </div>
     </div>
   </div>
@@ -360,7 +754,7 @@ This returns a dictionary of only the duplicates and their counts. Want me to ad
 <footer>
   <div class="footer-grid">
     <div class="footer-brand">
-      <a href="index.html" class="nav-logo" style="text-decoration:none">
+      <a href="#home" onclick="navigate('home');return false;" class="nav-logo" style="text-decoration:none">
         <div class="logo-mark">V</div>
         <span class="logo-text">ValueAI</span>
       </a>
@@ -368,16 +762,16 @@ This returns a dictionary of only the duplicates and their counts. Want me to ad
     </div>
     <div class="footer-col">
       <h5>Product</h5>
-      <a href="chat.html">ValueAI Chat</a>
-      <a href="pricing.html">Pricing</a>
+      <a href="#chat" onclick="navigate('chat');return false;">ValueAI Chat</a>
+      <a href="#pricing" onclick="navigate('pricing');return false;">Pricing</a>
       <a href="api.html">API</a>
       <a href="#">iOS App</a>
       <a href="#">Android App</a>
     </div>
     <div class="footer-col">
       <h5>Company</h5>
-      <a href="company.html">About</a>
-      <a href="research.html">Research</a>
+      <a href="#company" onclick="navigate('company');return false;">About</a>
+      <a href="#research" onclick="navigate('research');return false;">Research</a>
       <a href="#">Careers</a>
       <a href="#">Blog</a>
       <a href="#">Press</a>
@@ -400,5 +794,1160 @@ This returns a dictionary of only the duplicates and their counts. Want me to ad
     </div>
   </div>
 </footer>
+</div>
+<div id="view-chat" class="spa-view chat-view" data-page="chat">
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-top">
+    <a href="#home" onclick="navigate('home');return false;" class="logo-wrap">
+      <div class="logo-mark">V</div>
+      <span class="logo-text">ValueAI</span>
+    </a>
+    <button class="new-chat" onclick="resetChat()">
+      <span class="new-chat-icon">✦</span> New conversation
+    </button>
+  </div>
+  <div class="sidebar-section">Today</div>
+  <div class="sidebar-list" id="convList">
+    <div class="conv-item active" onclick="loadConv(this,'Python duplicates function')">
+      <div class="conv-dot"></div>
+      <div class="conv-txt">Python duplicates function</div>
+    </div>
+    <div class="conv-item" onclick="loadConv(this,'Marketing email for SaaS launch')">
+      <div class="conv-dot" style="background:var(--pink)"></div>
+      <div class="conv-txt">Marketing email for SaaS launch</div>
+    </div>
+    <div class="conv-item" onclick="loadConv(this,'Explain quantum entanglement')">
+      <div class="conv-dot" style="background:var(--cyan)"></div>
+      <div class="conv-txt">Explain quantum entanglement</div>
+    </div>
+    <div class="sidebar-section" style="padding-left:0;margin-top:.5rem">Yesterday</div>
+    <div class="conv-item" onclick="loadConv(this,'React vs Vue in 2025')"><div class="conv-dot" style="background:var(--emerald)"></div><div class="conv-txt">React vs Vue in 2025</div></div>
+    <div class="conv-item" onclick="loadConv(this,'Book recommendations – sci-fi')"><div class="conv-dot"></div><div class="conv-txt">Book recommendations – sci-fi</div></div>
+    <div class="conv-item" onclick="loadConv(this,'Q3 report executive summary')"><div class="conv-dot" style="background:var(--violet)"></div><div class="conv-txt">Q3 report executive summary</div></div>
+    <div class="sidebar-section" style="padding-left:0;margin-top:.5rem">Earlier</div>
+    <div class="conv-item" onclick="loadConv(this,'SQL query optimization tips')"><div class="conv-dot"></div><div class="conv-txt">SQL query optimization tips</div></div>
+    <div class="conv-item" onclick="loadConv(this,'Cover letter for PM role')"><div class="conv-dot" style="background:var(--pink)"></div><div class="conv-txt">Cover letter for PM role</div></div>
+    <div class="conv-item" onclick="loadConv(this,'Stoicism for modern life')"><div class="conv-dot" style="background:var(--cyan)"></div><div class="conv-txt">Stoicism for modern life</div></div>
+  </div>
+  <div class="sidebar-bottom">
+    <div class="user-row">
+      <div class="user-avatar">U</div>
+      <div class="user-info">
+        <div class="user-name">You</div>
+        <div class="user-plan">✦ Pro · Free</div>
+      </div>
+      <div class="user-dots">⋯</div>
+    </div>
+  </div>
+</aside>
+
+<!-- Chat Main -->
+<div class="chat-main">
+  <div class="chat-topbar">
+    <div class="model-select">
+      <div class="model-dot"></div>
+      ValueAI — Latest
+    </div>
+    <div class="topbar-right">
+      <button class="share-btn">↑ Share</button>
+    </div>
+  </div>
+
+  <div class="messages" id="messages">
+    <!-- Welcome screen shown by default -->
+    <div id="welcome" class="welcome">
+      <div class="welcome-logo">V</div>
+      <h2>How can I help you today?</h2>
+      <p>Ask me anything — code, writing, analysis, research, math, or just thinking things through.</p>
+      <div class="suggestions">
+        <div class="sug" onclick="useSuggestion('Write a Python function')"><strong>💻 Code</strong>Write a Python function that validates email addresses with regex</div>
+        <div class="sug" onclick="useSuggestion('Help me brainstorm')"><strong>💡 Brainstorm</strong>Help me brainstorm a unique product name for a productivity app</div>
+        <div class="sug" onclick="useSuggestion('Explain how')"><strong>🎓 Explain</strong>Explain how transformer neural networks work, simply</div>
+        <div class="sug" onclick="useSuggestion('Write a professional email')"><strong>✍️ Write</strong>Write a professional email declining a job offer gracefully</div>
+      </div>
+    </div>
+
+    <!-- Conversation thread -->
+    <div id="thread" class="msg-wrap" style="display:none"></div>
+  </div>
+
+  <div class="input-area">
+    <div class="input-wrap">
+      <div class="input-box">
+        <div class="input-toolbar">
+          <button class="toolbar-btn" title="Attach file">📎 Attach</button>
+          <div class="toolbar-sep"></div>
+          <button class="toolbar-btn">Projects</button>
+          <button class="toolbar-btn">Search</button>
+        </div>
+        <textarea id="userInput" placeholder="Message ValueAI…" rows="1" onkeydown="handleKey(event)" oninput="autoGrow(this)"></textarea>
+        <div class="input-bottom">
+          <span class="input-info" id="inputInfo">ValueAI can make mistakes. Verify important information.</span>
+          <div class="send-row">
+            <button class="stop-btn" id="stopBtn" onclick="stopTyping()">◼ Stop</button>
+            <button class="send-btn" id="sendBtn" onclick="sendMessage()" title="Send">↑</button>
+          </div>
+        </div>
+      </div>
+      <div class="disclaimer">ValueAI may produce inaccurate information about people, places, or facts.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+let isTyping = false;
+let typingTimeout = null;
+let messageCount = 0;
+
+const responses = [
+  `That's a great question. Let me break it down clearly.\n\nThe core concept here involves several interconnected ideas. First, you'll want to consider the underlying principles that govern the system. Second, there are practical implications that emerge when you apply those principles at scale.\n\nHere's a concrete example to illustrate:\n\n<code>example = "This is how it works in practice"</code>\n\nWould you like me to go deeper on any particular aspect of this?`,
+  `Sure! Here's a clean approach to that:\n\n<pre><code>def solution(input_data):\n    # Process and transform\n    result = [x for x in input_data if x]\n    return sorted(result, key=lambda x: x[0])</code></pre>\n\nThis handles edge cases gracefully and runs in O(n log n) time. A few things to note:\n\n• The list comprehension filters out falsy values first\n• Sorting by the first element keeps things predictable\n• You can extend this with custom comparators\n\nWant me to add error handling or unit tests?`,
+  `Great thinking. Here's how I'd approach this:\n\n**Step 1** — Define your core objective clearly. Vague goals produce vague results.\n\n**Step 2** — Map the constraints. What can't change? What must you work within?\n\n**Step 3** — Identify the leverage points where small changes produce big outcomes.\n\nThis framework applies whether you're tackling a technical problem, a strategic decision, or a creative challenge. The key is resisting the urge to jump to solutions before you fully understand the shape of the problem.\n\nShall I apply this to your specific situation?`,
+  `Absolutely. The research on this is quite clear, though there are some important nuances worth understanding.\n\nThe mainstream view holds that this operates through a well-established mechanism. However, recent studies have challenged some assumptions — particularly around edge cases and scale effects.\n\nFor your purposes, the practical takeaway is: **the principle holds reliably under normal conditions**, but you should be aware of the exceptions if you're working at extremes.\n\nI can point you toward the most credible sources if you want to dig deeper. What's driving your interest in this area?`,
+  `Here's a polished version:\n\n---\n\n*The approach you're describing reflects a sophisticated understanding of the trade-offs involved. Rather than optimizing for a single metric, you're building resilience into the system at multiple levels.*\n\n---\n\nI've kept your core argument intact but sharpened the language and improved the flow. The structure now leads with the strongest claim and builds evidence from there. Let me know if you'd like a different tone — more formal, more punchy, or somewhere in between.`
+];
+
+let responseIndex = 0;
+
+function autoGrow(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 200) + 'px';
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function useSuggestion(text) {
+  document.getElementById('userInput').value = text;
+  sendMessage();
+}
+
+function resetChat() {
+  document.getElementById('thread').innerHTML = '';
+  document.getElementById('thread').style.display = 'none';
+  document.getElementById('welcome').style.display = 'flex';
+  document.querySelectorAll('.conv-item').forEach(i => i.classList.remove('active'));
+  document.querySelector('.conv-item').classList.add('active');
+  messageCount = 0;
+}
+
+function loadConv(el, title) {
+  document.querySelectorAll('.conv-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+  resetToThread();
+  addMessage('user', `Tell me about: ${title}`);
+  showTyping();
+  setTimeout(() => {
+    removeTyping();
+    addMessage('ai', responses[responseIndex % responses.length]);
+    responseIndex++;
+  }, 1200);
+}
+
+function resetToThread() {
+  document.getElementById('welcome').style.display = 'none';
+  document.getElementById('thread').style.display = 'flex';
+  document.getElementById('thread').innerHTML = '';
+  messageCount = 0;
+}
+
+function sendMessage() {
+  const input = document.getElementById('userInput');
+  const text = input.value.trim();
+  if (!text || isTyping) return;
+
+  document.getElementById('welcome').style.display = 'none';
+  document.getElementById('thread').style.display = 'flex';
+
+  addMessage('user', text);
+  input.value = '';
+  input.style.height = 'auto';
+
+  // Update sidebar if first message
+  if (messageCount === 1) {
+    const preview = text.length > 36 ? text.slice(0, 36) + '…' : text;
+    const item = document.querySelector('.conv-item.active .conv-txt');
+    if (item) item.textContent = preview;
+  }
+
+  showTyping();
+  isTyping = true;
+  document.getElementById('stopBtn').style.display = 'block';
+  document.getElementById('sendBtn').disabled = true;
+
+  const delay = 800 + Math.random() * 1000;
+  typingTimeout = setTimeout(() => {
+    removeTyping();
+    addMessage('ai', responses[responseIndex % responses.length]);
+    responseIndex++;
+    isTyping = false;
+    document.getElementById('stopBtn').style.display = 'none';
+    document.getElementById('sendBtn').disabled = false;
+  }, delay);
+}
+
+function stopTyping() {
+  clearTimeout(typingTimeout);
+  removeTyping();
+  isTyping = false;
+  document.getElementById('stopBtn').style.display = 'none';
+  document.getElementById('sendBtn').disabled = false;
+}
+
+function addMessage(role, text) {
+  messageCount++;
+  const thread = document.getElementById('thread');
+  const group = document.createElement('div');
+  group.className = 'msg-group';
+
+  const row = document.createElement('div');
+  row.className = `msg-row ${role}`;
+
+  const avatar = document.createElement('div');
+  avatar.className = `msg-avatar ${role}`;
+  avatar.textContent = role === 'ai' ? 'V' : 'U';
+
+  const bubble = document.createElement('div');
+  bubble.className = `bubble ${role}`;
+
+  // Render simple markdown-ish
+  let html = text
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/<pre><code>([\s\S]*?)<\/code><\/pre>/g, (m, c) => `<pre><code>${c}</code></pre>`)
+    .replace(/•\s(.+)/g, '<span style="display:block;padding-left:.5rem">• $1</span>')
+    .replace(/\n/g, '<br>');
+
+  bubble.innerHTML = html;
+
+  row.appendChild(avatar);
+  row.appendChild(bubble);
+  group.appendChild(row);
+
+  if (role === 'ai') {
+    const actions = document.createElement('div');
+    actions.className = 'msg-actions';
+    actions.innerHTML = `
+      <button class="msg-action" onclick="copyMsg(this)">📋 Copy</button>
+      <button class="msg-action">👍</button>
+      <button class="msg-action">👎</button>
+      <button class="msg-action">↻ Retry</button>
+    `;
+    group.appendChild(actions);
+  }
+
+  thread.appendChild(group);
+  thread.scrollTop = thread.scrollHeight;
+}
+
+function showTyping() {
+  const thread = document.getElementById('thread');
+  const wrap = document.createElement('div');
+  wrap.id = 'typingWrap';
+  wrap.className = 'msg-group';
+  const row = document.createElement('div');
+  row.className = 'msg-row';
+  const av = document.createElement('div');
+  av.className = 'msg-avatar ai';
+  av.textContent = 'V';
+  const ind = document.createElement('div');
+  ind.className = 'typing-indicator';
+  ind.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+  row.appendChild(av);
+  row.appendChild(ind);
+  wrap.appendChild(row);
+  thread.appendChild(wrap);
+  thread.scrollTop = thread.scrollHeight;
+}
+
+function removeTyping() {
+  const t = document.getElementById('typingWrap');
+  if (t) t.remove();
+}
+
+function copyMsg(btn) {
+  const bubble = btn.closest('.msg-group').querySelector('.bubble');
+  navigator.clipboard.writeText(bubble.innerText).then(() => {
+    btn.textContent = '✓ Copied';
+    setTimeout(() => btn.textContent = '📋 Copy', 1500);
+  });
+}
+</script>
+</div>
+<div id="view-pricing" class="spa-view" data-page="pricing">
+<div class="bg-grid"></div>
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+
+<nav>
+  <a href="#home" onclick="navigate('home');return false;" class="nav-logo">
+    <div class="logo-mark">V</div>
+    <span class="logo-text">ValueAI</span>
+  </a>
+  <div class="nav-links">
+    <a href="#home" onclick="navigate('home','features');return false;">Features</a>
+    <a href="#pricing" onclick="navigate('pricing');return false;" style="color:var(--text)">Pricing</a>
+    <a href="#home" onclick="navigate('home','usecases');return false;">Use cases</a>
+    <a href="#company" onclick="navigate('company');return false;">Company</a>
+  </div>
+  <div class="nav-cta">
+    <a href="#login" onclick="navigate('login');return false;" class="btn-ghost">Log in</a>
+    <a href="#signup" onclick="navigate('signup');return false;" class="btn-primary">Start free</a>
+  </div>
+</nav>
+
+<main>
+  <div class="pricing-header">
+    <div class="free-pill">Every plan is $0/month — forever</div>
+    <h1>Pricing that respects <em>everyone</em></h1>
+    <p class="pricing-sub">We've removed every paywall. Pro, Team, and Enterprise features are all free because intelligence shouldn't be a luxury.</p>
+  </div>
+
+  <div class="plans">
+    <!-- Free / Personal -->
+    <div class="plan free1">
+      <div>
+        <div class="plan-name">Personal</div>
+        <div class="plan-price-wrap">
+          <div class="plan-price">$0</div>
+          <div class="plan-period">/month</div>
+        </div>
+        <div class="plan-old-price">Was free — still free</div>
+      </div>
+      <div class="plan-desc">For individuals exploring AI-assisted work. Full capability from day one.</div>
+      <a href="#signup" onclick="navigate('signup');return false;" class="plan-cta">Get started free</a>
+      <div class="plan-divider"></div>
+      <div class="plan-features">
+        <div class="pf"><span class="pf-check">✓</span>Unlimited messages</div>
+        <div class="pf"><span class="pf-check">✓</span>Latest ValueAI model</div>
+        <div class="pf"><span class="pf-check">✓</span>File & image uploads</div>
+        <div class="pf"><span class="pf-check">✓</span>200K context window</div>
+        <div class="pf"><span class="pf-check">✓</span>Projects & memory</div>
+        <div class="pf"><span class="pf-check">✓</span>Web & mobile apps</div>
+      </div>
+    </div>
+
+    <!-- Pro -->
+    <div class="plan featured">
+      <div>
+        <div class="plan-name">Pro</div>
+        <div class="plan-price-wrap">
+          <div class="plan-price">$0</div>
+          <div class="plan-period">/month</div>
+        </div>
+        <div class="plan-old-price">Others charge $20/mo</div>
+      </div>
+      <div class="plan-desc">Everything in Personal, plus priority access, extended usage, and advanced tools.</div>
+      <a href="#signup" onclick="navigate('signup');return false;" class="plan-cta">Start Pro — free</a>
+      <div class="plan-divider"></div>
+      <div class="plan-features">
+        <div class="pf"><span class="pf-check">✓</span>Everything in Personal</div>
+        <div class="pf"><span class="pf-check">✓</span>5× more usage than Personal</div>
+        <div class="pf"><span class="pf-check">✓</span>Priority model access</div>
+        <div class="pf"><span class="pf-check">✓</span>Advanced data analysis</div>
+        <div class="pf"><span class="pf-check">✓</span>ValueAI API access</div>
+        <div class="pf"><span class="pf-check">✓</span>Early access to new features</div>
+      </div>
+    </div>
+
+    <!-- Team / Enterprise -->
+    <div class="plan enterprise">
+      <div>
+        <div class="plan-name">Team & Enterprise</div>
+        <div class="plan-price-wrap">
+          <div class="plan-price">$0</div>
+          <div class="plan-period">/seat/mo</div>
+        </div>
+        <div class="plan-old-price">Others charge $25–$60/seat</div>
+      </div>
+      <div class="plan-desc">Collaboration features, admin controls, and enterprise-grade security for your whole org.</div>
+      <a href="#signup" onclick="navigate('signup');return false;" class="plan-cta">Start your team free</a>
+      <div class="plan-divider"></div>
+      <div class="plan-features">
+        <div class="pf"><span class="pf-check">✓</span>Everything in Pro</div>
+        <div class="pf"><span class="pf-check">✓</span>Shared team projects</div>
+        <div class="pf"><span class="pf-check">✓</span>Admin dashboard</div>
+        <div class="pf"><span class="pf-check">✓</span>SSO & SAML</div>
+        <div class="pf"><span class="pf-check">✓</span>SOC 2 Type II certified</div>
+        <div class="pf"><span class="pf-check">✓</span>Dedicated support</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Compare table -->
+  <div class="compare-wrap">
+    <h2>Compare plans</h2>
+    <p>Every feature is free. This table shows what's included at each tier.</p>
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>Personal</th>
+          <th class="highlight">Pro</th>
+          <th>Team</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="section-row"><td colspan="4">Core access</td></tr>
+        <tr><td>Latest AI model</td><td><span class="tick">✓</span></td><td><span class="tick">✓</span></td><td><span class="tick">✓</span></td></tr>
+        <tr><td>Unlimited messages</td><td><span class="tick">✓</span></td><td><span class="tick">✓</span></td><td><span class="tick">✓</span></td></tr>
+        <tr><td>200K token context window</td><td><span class="tick">✓</span></td><td><span class="tick">✓</span></td><td><span class="tick">✓</span></td></tr>
+        <tr><td>iOS & Android apps</td><td><span class="tick">✓</span></td><td><span class="tick">✓</span></td><td><span class="tick">✓</span></td></tr>
+
+        <tr class="section-row"><td colspan="4">Productivity</td></tr>
+        <tr><td>File & image uploads</td><td><span class="tick">✓</span></td><td><span class="tick">✓</span></td><td><span class="tick">✓</span></td></tr>
+        <tr><td>Projects & persistent memory</td><td><span class="tick">✓</span></td><td><span class="tick">✓</span></td><td><span class="tick">✓</span></td></tr>
+        <tr><td>Advanced data analysis</td><td><span class="cross">—</span></td><td><span class="tick">✓</span></td><td><span class="tick">✓</span></td></tr>
+        <tr><td>Priority queue access</td><td><span class="cross">—</span></td><td><span class="tick">✓</span></td><td><span class="tick">✓</span></td></tr>
+        <tr><td>Extended usage limits (5×)</td><td><span class="cross">—</span></td><td><span class="tick">✓</span></td><td><span class="tick">✓</span></td></tr>
+
+        <tr class="section-row"><td colspan="4">Team & Enterprise</td></tr>
+        <tr><td>Shared team spaces</td><td><span class="cross">—</span></td><td><span class="cross">—</span></td><td><span class="tick">✓</span></td></tr>
+        <tr><td>Admin controls & audit logs</td><td><span class="cross">—</span></td><td><span class="cross">—</span></td><td><span class="tick">✓</span></td></tr>
+        <tr><td>SSO / SAML</td><td><span class="cross">—</span></td><td><span class="cross">—</span></td><td><span class="tick">✓</span></td></tr>
+        <tr><td>SOC 2 Type II</td><td><span class="cross">—</span></td><td><span class="cross">—</span></td><td><span class="tick">✓</span></td></tr>
+        <tr><td>API access</td><td><span class="cross">—</span></td><td><span class="tick">✓</span></td><td><span class="tick">✓</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- FAQ -->
+  <div class="faq-wrap">
+    <h2>Frequently asked</h2>
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-q">Is it actually free? What's the catch?<span class="faq-arrow">+</span></div>
+      <div class="faq-a"><div class="faq-a-inner">Yes, it's actually free — no catch. ValueAI believes capable AI should be accessible to everyone, not gated behind subscriptions. We're funded to build an AI that genuinely serves people, not to extract maximum revenue per user.</div></div>
+    </div>
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-q">Will it stay free, or will prices go up later?<span class="faq-arrow">+</span></div>
+      <div class="faq-a"><div class="faq-a-inner">Our commitment is to keep core features free forever. We may introduce optional paid add-ons in the future for niche enterprise requirements, but the capabilities you're using today will remain free.</div></div>
+    </div>
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-q">What's the difference between Personal and Pro if both are free?<span class="faq-arrow">+</span></div>
+      <div class="faq-a"><div class="faq-a-inner">Pro includes 5× higher usage limits, priority access during peak times, advanced data analysis tools, and early access to new features. For most users, Personal is more than enough. Pro is ideal for heavy daily users or professionals who rely on ValueAI throughout their workday.</div></div>
+    </div>
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-q">How is ValueAI different from Claude or ChatGPT?<span class="faq-arrow">+</span></div>
+      <div class="faq-a"><div class="faq-a-inner">ValueAI offers comparable AI capability but makes everything free that competitors charge for. We're focused on removing barriers rather than maximising revenue.</div></div>
+    </div>
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-q">Is my data private and secure?<span class="faq-arrow">+</span></div>
+      <div class="faq-a"><div class="faq-a-inner">Yes. Your conversations are private and not used to train our models without explicit consent. Team and Enterprise plans include SOC 2 Type II compliance and additional data controls.</div></div>
+    </div>
+  </div>
+</main>
+
+<script>
+function toggleFaq(el) {
+  el.classList.toggle('open');
+}
+</script>
+</div>
+<div id="view-signup" class="spa-view" data-page="signup">
+<div class="bg-grid"></div>
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+<a href="#home" onclick="navigate('home');return false;" class="back">← Back to ValueAI</a>
+<div class="card">
+  <div class="logo-wrap"><div class="logo-mark">V</div><span class="logo-text">ValueAI</span></div>
+  <h1>Create your account</h1>
+  <p class="sub">All features free. No credit card needed.</p>
+  <div class="free-banner">Pro plan included — completely free</div>
+  <div class="oauth">
+    <a href="#chat" onclick="navigate('chat');return false;" class="oauth-btn">G &nbsp;Continue with Google</a>
+    <a href="#chat" onclick="navigate('chat');return false;" class="oauth-btn">⊞ &nbsp;Continue with Microsoft</a>
+    <a href="#chat" onclick="navigate('chat');return false;" class="oauth-btn">◆ &nbsp;Continue with Apple</a>
+  </div>
+  <div class="divider"><div class="div-line"></div><span class="div-txt">or sign up with email</span><div class="div-line"></div></div>
+  <div class="row2">
+    <div class="field"><label>First name</label><input type="text" placeholder="Alex"></div>
+    <div class="field"><label>Last name</label><input type="text" placeholder="Smith"></div>
+  </div>
+  <div class="field"><label>Email address</label><input type="email" placeholder="you@example.com"></div>
+  <div class="field"><label>Password</label><input type="password" placeholder="Min. 8 characters"></div>
+  <div class="terms">By signing up you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a></div>
+  <button class="submit" onclick="navigate('chat')">Create free account →</button>
+  <div class="foot">Already have an account? <a href="#login" onclick="navigate('login');return false;">Log in</a></div>
+</div>
+</div>
+<div id="view-login" class="spa-view" data-page="login">
+<div class="bg-grid"></div>
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+<a href="#home" onclick="navigate('home');return false;" class="back">← Back to ValueAI</a>
+<div class="card">
+  <div class="logo-wrap">
+    <div class="logo-mark">V</div>
+    <span class="logo-text">ValueAI</span>
+  </div>
+  <h1>Welcome back</h1>
+  <p class="sub">Log in to your ValueAI account</p>
+  <div class="oauth">
+    <a href="#chat" onclick="navigate('chat');return false;" class="oauth-btn"><span class="oauth-icon">G</span>Continue with Google</a>
+    <a href="#chat" onclick="navigate('chat');return false;" class="oauth-btn"><span class="oauth-icon">⊞</span>Continue with Microsoft</a>
+    <a href="#chat" onclick="navigate('chat');return false;" class="oauth-btn"><span class="oauth-icon">◆</span>Continue with Apple</a>
+  </div>
+  <div class="divider"><div class="div-line"></div><span class="div-txt">or continue with email</span><div class="div-line"></div></div>
+  <div class="field">
+    <label>Email address</label>
+    <input type="email" placeholder="you@example.com">
+  </div>
+  <div class="field">
+    <div class="field-row">
+      <label style="margin-bottom:0">Password</label>
+      <a href="#" class="forgot">Forgot password?</a>
+    </div>
+    <input type="password" placeholder="••••••••" style="margin-top:.45rem">
+  </div>
+  <button class="submit" onclick="navigate('chat')">Log in to ValueAI</button>
+  <div class="foot">Don't have an account? <a href="#signup" onclick="navigate('signup');return false;">Sign up free</a></div>
+</div>
+</div>
+<div id="view-company" class="spa-view" data-page="company">
+<div class="bg-grid"></div>
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+
+<nav>
+  <a href="#home" onclick="navigate('home');return false;" class="nav-logo">
+    <div class="logo-mark">V</div>
+    <span class="logo-text">ValueAI</span>
+  </a>
+  <div class="nav-links">
+    <a href="#home" onclick="navigate('home','features');return false;">Features</a>
+    <a href="#pricing" onclick="navigate('pricing');return false;">Pricing</a>
+    <a href="#research" onclick="navigate('research');return false;">Research</a>
+    <a href="#company" onclick="navigate('company');return false;" style="color:var(--text)">Company</a>
+  </div>
+  <div class="nav-cta">
+    <a href="#login" onclick="navigate('login');return false;" class="btn-ghost">Log in</a>
+    <a href="#signup" onclick="navigate('signup');return false;" class="btn-primary">Start free</a>
+  </div>
+</nav>
+
+<main>
+  <div class="hero">
+    <div class="tag">Company</div>
+    <h1>AI should work for <span>everyone</span></h1>
+    <p>ValueAI was built on a simple belief: that the most capable AI tools shouldn't be luxury goods. We're building AI that's genuinely helpful, honest, and free.</p>
+  </div>
+
+  <div class="mission">
+    <div class="mission-card">
+      <h2>Our <span>mission</span></h2>
+      <p>The development of AI has largely proceeded on the assumption that capability and access are in tension — that the most powerful tools must be reserved for those who can pay premium prices. We reject that assumption entirely.</p>
+      <p>ValueAI exists to demonstrate that an AI company can be well-funded, technically excellent, and still choose to make its product free. We believe that when intelligent AI is accessible to students, researchers, small businesses, and individuals in every country, the aggregate benefit to humanity is far greater than any revenue we'd generate by paywalling features.</p>
+      <p>We're in this for the long haul — building AI that's safe, honest, capable, and open to everyone who needs it.</p>
+    </div>
+  </div>
+
+  <div class="values">
+    <h2>What we stand for</h2>
+    <p class="sub">The principles behind every decision we make</p>
+    <div class="values-grid">
+      <div class="val"><div class="val-num">01</div><h3>Genuine helpfulness</h3><p>We build AI that actually helps — not AI that hedges everything and adds disclaimers to every response.</p></div>
+      <div class="val"><div class="val-num">02</div><h3>Radical honesty</h3><p>Our AI says what it believes, acknowledges uncertainty, and never pretends to know what it doesn't.</p></div>
+      <div class="val"><div class="val-num">03</div><h3>Universal access</h3><p>No paywalls for core capability. If we build something useful, everyone gets it — not just premium subscribers.</p></div>
+      <div class="val"><div class="val-num">04</div><h3>Safety by design</h3><p>We invest heavily in alignment research so our AI is trustworthy, not just capable.</p></div>
+    </div>
+  </div>
+
+  <div class="team-section">
+    <h2>The team</h2>
+    <p class="sub">Researchers, engineers, and builders who care deeply about getting AI right</p>
+    <div class="team-grid">
+      <div class="member"><div class="member-avatar">S</div><div class="member-name">Sam Okafor</div><div class="member-role">CEO & Co-founder</div><div class="member-prev">Previously DeepMind</div></div>
+      <div class="member"><div class="member-avatar" style="background:linear-gradient(135deg,var(--cyan),var(--violet))">J</div><div class="member-name">Ji-yeon Park</div><div class="member-role">CTO & Co-founder</div><div class="member-prev">Previously OpenAI</div></div>
+      <div class="member"><div class="member-avatar" style="background:linear-gradient(135deg,var(--pink),var(--violet))">M</div><div class="member-name">Marcus Webb</div><div class="member-role">Head of Research</div><div class="member-prev">Previously Anthropic</div></div>
+      <div class="member"><div class="member-avatar" style="background:linear-gradient(135deg,var(--emerald),var(--cyan))">L</div><div class="member-name">Layla Hassan</div><div class="member-role">VP Engineering</div><div class="member-prev">Previously Google</div></div>
+    </div>
+  </div>
+
+  <div class="cta">
+    <h2>Come help us build it</h2>
+    <p>We're hiring engineers, researchers, and designers who share our conviction that AI should serve everyone.</p>
+    <a href="#" class="btn-hero">View open roles →</a>
+  </div>
+</main>
+</div>
+<div id="view-research" class="spa-view" data-page="research">
+<div class="bg-grid"></div>
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+
+<nav>
+  <a href="#home" onclick="navigate('home');return false;" class="nav-logo">
+    <div class="logo-mark">V</div>
+    <span class="logo-text">ValueAI</span>
+  </a>
+  <div class="nav-links">
+    <a href="#home" onclick="navigate('home','features');return false;">Features</a>
+    <a href="#pricing" onclick="navigate('pricing');return false;">Pricing</a>
+    <a href="#research" onclick="navigate('research');return false;" class="active">Research</a>
+    <a href="#company" onclick="navigate('company');return false;">Company</a>
+  </div>
+  <div class="nav-cta">
+    <a href="#login" onclick="navigate('login');return false;" class="btn-ghost">Log in</a>
+    <a href="#signup" onclick="navigate('signup');return false;" class="btn-primary">Start free</a>
+  </div>
+</nav>
+
+<main>
+  <div class="tag">Research</div>
+  <h1>Building AI that's genuinely safe and helpful</h1>
+  <p class="hero-sub">Our research spans alignment, interpretability, and safety — because we think getting AI right matters more than getting there first.</p>
+
+  <div class="research-areas">
+    <div class="area"><span class="area-icon">🧭</span><h3>Alignment</h3><p>Training AI systems that reliably pursue intended goals and remain corrigible to human oversight across diverse conditions.</p></div>
+    <div class="area"><span class="area-icon">🔍</span><h3>Interpretability</h3><p>Understanding what's happening inside neural networks — developing tools to read, audit, and explain model behaviour.</p></div>
+    <div class="area"><span class="area-icon">🛡️</span><h3>Safety</h3><p>Preventing misuse, studying failure modes, and building evaluation frameworks to catch problems before deployment.</p></div>
+    <div class="area"><span class="area-icon">⚖️</span><h3>Policy & Governance</h3><p>Working with policymakers and researchers worldwide to develop standards for responsible AI deployment.</p></div>
+  </div>
+
+  <h2>Recent publications</h2>
+  <p class="section-sub">Selected work from the ValueAI research team</p>
+
+  <div class="papers">
+    <div class="paper">
+      <span class="paper-tag pt-align">Alignment</span>
+      <div class="paper-body">
+        <h4>Constitutional Methods for Scalable Value Alignment</h4>
+        <p>We introduce a framework for training AI systems to reason about values from a written specification, enabling more transparent and auditable alignment than reward modelling alone.</p>
+        <div class="paper-meta">ValueAI Research · 2025 · 34 pages</div>
+      </div>
+      <span class="paper-arrow">→</span>
+    </div>
+    <div class="paper">
+      <span class="paper-tag pt-interp">Interpretability</span>
+      <div class="paper-body">
+        <h4>Sparse Autoencoders Find Interpretable Directions in Large Language Models</h4>
+        <p>By training sparse autoencoders on residual stream activations, we identify thousands of interpretable features that generalise across model scales.</p>
+        <div class="paper-meta">ValueAI Research · 2025 · 28 pages</div>
+      </div>
+      <span class="paper-arrow">→</span>
+    </div>
+    <div class="paper">
+      <span class="paper-tag pt-safety">Safety</span>
+      <div class="paper-body">
+        <h4>Red-Teaming Language Models with Language Models</h4>
+        <p>We present an automated red-teaming methodology in which AI systems generate and evaluate adversarial prompts, significantly improving coverage over human-only red-teaming.</p>
+        <div class="paper-meta">ValueAI Research · 2024 · 22 pages</div>
+      </div>
+      <span class="paper-arrow">→</span>
+    </div>
+    <div class="paper">
+      <span class="paper-tag pt-align">Alignment</span>
+      <div class="paper-body">
+        <h4>Evaluating Honesty in Large Language Models: A Benchmark Suite</h4>
+        <p>We introduce six evaluations covering truthfulness, calibration, transparency, and non-deception, along with findings from applying them to current frontier models.</p>
+        <div class="paper-meta">ValueAI Research · 2024 · 41 pages</div>
+      </div>
+      <span class="paper-arrow">→</span>
+    </div>
+    <div class="paper">
+      <span class="paper-tag pt-interp">Interpretability</span>
+      <div class="paper-body">
+        <h4>Attention Patterns and Factual Recall in Transformer Language Models</h4>
+        <p>We trace how factual associations are stored and retrieved in transformer models, identifying the attention heads and MLP layers most responsible for knowledge retrieval.</p>
+        <div class="paper-meta">ValueAI Research · 2024 · 19 pages</div>
+      </div>
+      <span class="paper-arrow">→</span>
+    </div>
+  </div>
+</main>
+</div>
+<script id="script-chat" class="page-script" data-page="chat">
+let isTyping = false;
+let typingTimeout = null;
+let messageCount = 0;
+
+const responses = [
+  `That's a great question. Let me break it down clearly.\n\nThe core concept here involves several interconnected ideas. First, you'll want to consider the underlying principles that govern the system. Second, there are practical implications that emerge when you apply those principles at scale.\n\nHere's a concrete example to illustrate:\n\n<code>example = "This is how it works in practice"</code>\n\nWould you like me to go deeper on any particular aspect of this?`,
+  `Sure! Here's a clean approach to that:\n\n<pre><code>def solution(input_data):\n    # Process and transform\n    result = [x for x in input_data if x]\n    return sorted(result, key=lambda x: x[0])</code></pre>\n\nThis handles edge cases gracefully and runs in O(n log n) time. A few things to note:\n\n• The list comprehension filters out falsy values first\n• Sorting by the first element keeps things predictable\n• You can extend this with custom comparators\n\nWant me to add error handling or unit tests?`,
+  `Great thinking. Here's how I'd approach this:\n\n**Step 1** — Define your core objective clearly. Vague goals produce vague results.\n\n**Step 2** — Map the constraints. What can't change? What must you work within?\n\n**Step 3** — Identify the leverage points where small changes produce big outcomes.\n\nThis framework applies whether you're tackling a technical problem, a strategic decision, or a creative challenge. The key is resisting the urge to jump to solutions before you fully understand the shape of the problem.\n\nShall I apply this to your specific situation?`,
+  `Absolutely. The research on this is quite clear, though there are some important nuances worth understanding.\n\nThe mainstream view holds that this operates through a well-established mechanism. However, recent studies have challenged some assumptions — particularly around edge cases and scale effects.\n\nFor your purposes, the practical takeaway is: **the principle holds reliably under normal conditions**, but you should be aware of the exceptions if you're working at extremes.\n\nI can point you toward the most credible sources if you want to dig deeper. What's driving your interest in this area?`,
+  `Here's a polished version:\n\n---\n\n*The approach you're describing reflects a sophisticated understanding of the trade-offs involved. Rather than optimizing for a single metric, you're building resilience into the system at multiple levels.*\n\n---\n\nI've kept your core argument intact but sharpened the language and improved the flow. The structure now leads with the strongest claim and builds evidence from there. Let me know if you'd like a different tone — more formal, more punchy, or somewhere in between.`
+];
+
+let responseIndex = 0;
+
+function autoGrow(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 200) + 'px';
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function useSuggestion(text) {
+  document.getElementById('userInput').value = text;
+  sendMessage();
+}
+
+function resetChat() {
+  document.getElementById('thread').innerHTML = '';
+  document.getElementById('thread').style.display = 'none';
+  document.getElementById('welcome').style.display = 'flex';
+  document.querySelectorAll('.conv-item').forEach(i => i.classList.remove('active'));
+  document.querySelector('.conv-item').classList.add('active');
+  messageCount = 0;
+}
+
+function loadConv(el, title) {
+  document.querySelectorAll('.conv-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+  resetToThread();
+  addMessage('user', `Tell me about: ${title}`);
+  showTyping();
+  setTimeout(() => {
+    removeTyping();
+    addMessage('ai', responses[responseIndex % responses.length]);
+    responseIndex++;
+  }, 1200);
+}
+
+function resetToThread() {
+  document.getElementById('welcome').style.display = 'none';
+  document.getElementById('thread').style.display = 'flex';
+  document.getElementById('thread').innerHTML = '';
+  messageCount = 0;
+}
+
+function sendMessage() {
+  const input = document.getElementById('userInput');
+  const text = input.value.trim();
+  if (!text || isTyping) return;
+
+  document.getElementById('welcome').style.display = 'none';
+  document.getElementById('thread').style.display = 'flex';
+
+  addMessage('user', text);
+  input.value = '';
+  input.style.height = 'auto';
+
+  // Update sidebar if first message
+  if (messageCount === 1) {
+    const preview = text.length > 36 ? text.slice(0, 36) + '…' : text;
+    const item = document.querySelector('.conv-item.active .conv-txt');
+    if (item) item.textContent = preview;
+  }
+
+  showTyping();
+  isTyping = true;
+  document.getElementById('stopBtn').style.display = 'block';
+  document.getElementById('sendBtn').disabled = true;
+
+  const delay = 800 + Math.random() * 1000;
+  typingTimeout = setTimeout(() => {
+    removeTyping();
+    addMessage('ai', responses[responseIndex % responses.length]);
+    responseIndex++;
+    isTyping = false;
+    document.getElementById('stopBtn').style.display = 'none';
+    document.getElementById('sendBtn').disabled = false;
+  }, delay);
+}
+
+function stopTyping() {
+  clearTimeout(typingTimeout);
+  removeTyping();
+  isTyping = false;
+  document.getElementById('stopBtn').style.display = 'none';
+  document.getElementById('sendBtn').disabled = false;
+}
+
+function addMessage(role, text) {
+  messageCount++;
+  const thread = document.getElementById('thread');
+  const group = document.createElement('div');
+  group.className = 'msg-group';
+
+  const row = document.createElement('div');
+  row.className = `msg-row ${role}`;
+
+  const avatar = document.createElement('div');
+  avatar.className = `msg-avatar ${role}`;
+  avatar.textContent = role === 'ai' ? 'V' : 'U';
+
+  const bubble = document.createElement('div');
+  bubble.className = `bubble ${role}`;
+
+  // Render simple markdown-ish
+  let html = text
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/<pre><code>([\s\S]*?)<\/code><\/pre>/g, (m, c) => `<pre><code>${c}</code></pre>`)
+    .replace(/•\s(.+)/g, '<span style="display:block;padding-left:.5rem">• $1</span>')
+    .replace(/\n/g, '<br>');
+
+  bubble.innerHTML = html;
+
+  row.appendChild(avatar);
+  row.appendChild(bubble);
+  group.appendChild(row);
+
+  if (role === 'ai') {
+    const actions = document.createElement('div');
+    actions.className = 'msg-actions';
+    actions.innerHTML = `
+      <button class="msg-action" onclick="copyMsg(this)">📋 Copy</button>
+      <button class="msg-action">👍</button>
+      <button class="msg-action">👎</button>
+      <button class="msg-action">↻ Retry</button>
+    `;
+    group.appendChild(actions);
+  }
+
+  thread.appendChild(group);
+  thread.scrollTop = thread.scrollHeight;
+}
+
+function showTyping() {
+  const thread = document.getElementById('thread');
+  const wrap = document.createElement('div');
+  wrap.id = 'typingWrap';
+  wrap.className = 'msg-group';
+  const row = document.createElement('div');
+  row.className = 'msg-row';
+  const av = document.createElement('div');
+  av.className = 'msg-avatar ai';
+  av.textContent = 'V';
+  const ind = document.createElement('div');
+  ind.className = 'typing-indicator';
+  ind.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+  row.appendChild(av);
+  row.appendChild(ind);
+  wrap.appendChild(row);
+  thread.appendChild(wrap);
+  thread.scrollTop = thread.scrollHeight;
+}
+
+function removeTyping() {
+  const t = document.getElementById('typingWrap');
+  if (t) t.remove();
+}
+
+function copyMsg(btn) {
+  const bubble = btn.closest('.msg-group').querySelector('.bubble');
+  navigator.clipboard.writeText(bubble.innerText).then(() => {
+    btn.textContent = '✓ Copied';
+    setTimeout(() => btn.textContent = '📋 Copy', 1500);
+  });
+}
+</script>
+<script id="script-pricing" class="page-script" data-page="pricing">
+function toggleFaq(el) {
+  el.classList.toggle('open');
+}
+</script>
+<script>
+// ── SPA Router ──
+const PAGE_TITLES = {
+  home: 'ValueAI – AI that thinks with you',
+  chat: 'ValueAI – Chat',
+  pricing: 'ValueAI – Pricing',
+  signup: 'ValueAI – Create your account',
+  login: 'ValueAI – Log in',
+  company: 'ValueAI – Company',
+  research: 'ValueAI – Research'
+};
+
+function navigate(page, anchor) {
+  // Hide all views and styles
+  document.querySelectorAll('.spa-view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.page-style').forEach(s => {
+    s.disabled = true;
+    s.style.display = 'none';
+  });
+
+  // Show target view and its style
+  const view = document.getElementById('view-' + page);
+  const style = document.getElementById('style-' + page);
+  if (view) view.classList.add('active');
+  if (style) { style.disabled = false; style.style.display = ''; }
+
+  // Update title and hash
+  document.title = PAGE_TITLES[page] || 'ValueAI';
+  history.pushState({ page }, '', '#' + page);
+
+  // Scroll handling
+  window.scrollTo(0, 0);
+  if (anchor) {
+    setTimeout(() => {
+      const el = document.getElementById(anchor);
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }, 50);
+  }
+
+  // Re-init page scripts if needed
+  reinitPage(page);
+
+  // Re-attach owner panel trigger for new view
+  if (typeof attachOwnerTrigger === 'function') attachOwnerTrigger();
+}
+
+function reinitPage(page) {
+  if (page === 'chat') {
+    // Reset chat to welcome state when navigating to it
+    const welcome = document.getElementById('welcome');
+    const thread = document.getElementById('thread');
+    if (welcome) welcome.style.display = 'flex';
+    if (thread) { thread.style.display = 'none'; thread.innerHTML = ''; }
+  }
+}
+
+// Handle browser back/forward
+window.addEventListener('popstate', (e) => {
+  const page = e.state && e.state.page ? e.state.page : 'home';
+  navigate(page);
+});
+
+// Boot: read hash or default to home
+(function boot() {
+  const hash = location.hash.replace('#', '') || 'home';
+  const valid = ['home','chat','pricing','signup','login','company','research'];
+  navigate(valid.includes(hash) ? hash : 'home');
+})();
+</script>
+<script>
+/* ValueAI Owner Panel — Secret Admin System */
+(function(){
+  const PASS = 'V@lu3#9X!';
+  let clickCount = 0, clickTimer = null, unlocked = false;
+
+  /* ── Trigger: triple-click the logo mark ── */
+  function attachTrigger(){
+    const marks = document.querySelectorAll('.logo-mark');
+    marks.forEach(m => {
+      m.style.cursor = 'pointer';
+      m.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        clickCount++;
+        clearTimeout(clickTimer);
+        if(clickCount >= 3){ clickCount = 0; showLogin(); return; }
+        clickTimer = setTimeout(()=>{ clickCount = 0; }, 600);
+      });
+    });
+  }
+
+  /* ── Login overlay ── */
+  function showLogin(){
+    if(unlocked){ showPanel(); return; }
+    const ov = document.createElement('div');
+    ov.id = 'op-login';
+    ov.innerHTML = `
+      <div id="op-login-box">
+        <div id="op-login-logo">⚙</div>
+        <div id="op-login-title">Owner Access</div>
+        <input type="password" id="op-pw-input" placeholder="Enter owner password" autocomplete="off" />
+        <div id="op-pw-err"></div>
+        <button id="op-pw-btn">Unlock →</button>
+        <button id="op-cancel-btn">Cancel</button>
+      </div>`;
+    document.body.appendChild(ov);
+    const input = document.getElementById('op-pw-input');
+    const err   = document.getElementById('op-pw-err');
+    setTimeout(()=>input.focus(), 50);
+    document.getElementById('op-pw-btn').onclick = attempt;
+    input.addEventListener('keydown', e=>{ if(e.key==='Enter') attempt(); });
+    document.getElementById('op-cancel-btn').onclick = ()=>ov.remove();
+    function attempt(){
+      if(input.value === PASS){ unlocked = true; ov.remove(); showPanel(); }
+      else{ err.textContent = 'Wrong password.'; input.value=''; input.focus(); }
+    }
+  }
+
+  /* ── Main Panel ── */
+  function showPanel(){
+    if(document.getElementById('op-panel')) return;
+    const panel = document.createElement('div');
+    panel.id = 'op-panel';
+    panel.innerHTML = `
+      <div id="op-header">
+        <span id="op-title">⚙ Owner Panel</span>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span id="op-status">Click any text on the page to edit it</span>
+          <button class="op-hdr-btn" id="op-color-toggle">🎨 Colors</button>
+          <button class="op-hdr-btn" id="op-close">✕ Close</button>
+        </div>
+      </div>
+      <div id="op-color-panel" style="display:none">
+        <div class="op-color-row">
+          <label>Background</label>
+          <input type="color" data-var="--bg" value="#02020a" />
+        </div>
+        <div class="op-color-row">
+          <label>Surface</label>
+          <input type="color" data-var="--bg3" value="#0c0c1e" />
+        </div>
+        <div class="op-color-row">
+          <label>Cyan accent</label>
+          <input type="color" data-var="--cyan" value="#00f5ff" />
+        </div>
+        <div class="op-color-row">
+          <label>Violet accent</label>
+          <input type="color" data-var="--violet" value="#8b5cf6" />
+        </div>
+        <div class="op-color-row">
+          <label>Pink accent</label>
+          <input type="color" data-var="--pink" value="#f472b6" />
+        </div>
+        <div class="op-color-row">
+          <label>Emerald accent</label>
+          <input type="color" data-var="--emerald" value="#34d399" />
+        </div>
+        <div class="op-color-row">
+          <label>Text primary</label>
+          <input type="color" data-var="--text" value="#f0f0ff" />
+        </div>
+        <button class="op-action-btn" id="op-reset-colors">Reset Colors</button>
+      </div>`;
+    document.body.appendChild(panel);
+
+    /* Close */
+    document.getElementById('op-close').onclick = ()=>{ disableEdit(); panel.remove(); };
+
+    /* Color toggle */
+    const colorPanel = document.getElementById('op-color-panel');
+    document.getElementById('op-color-toggle').onclick = ()=>{
+      colorPanel.style.display = colorPanel.style.display==='none' ? 'block' : 'none';
+    };
+
+    /* Live color editing */
+    const root = document.documentElement;
+    colorPanel.querySelectorAll('input[type=color]').forEach(inp=>{
+      inp.addEventListener('input', ()=>{
+        root.style.setProperty(inp.dataset.var, inp.value);
+      });
+    });
+
+    /* Reset colors */
+    const defaults = {'--bg':'#02020a','--bg3':'#0c0c1e','--cyan':'#00f5ff','--violet':'#8b5cf6','--pink':'#f472b6','--emerald':'#34d399','--text':'#f0f0ff'};
+    document.getElementById('op-reset-colors').onclick = ()=>{
+      Object.entries(defaults).forEach(([k,v])=>{
+        root.style.setProperty(k,v);
+        colorPanel.querySelector(`input[data-var="${k}"]`).value = v;
+      });
+    };
+
+    /* Click-to-edit text */
+    enableEdit();
+  }
+
+  let editMode = false;
+  let activeEl = null;
+  let origBg = '';
+
+  function enableEdit(){
+    editMode = true;
+    document.body.style.cursor = 'text';
+    document.addEventListener('click', onPageClick, true);
+  }
+
+  function disableEdit(){
+    editMode = false;
+    document.body.style.cursor = '';
+    document.removeEventListener('click', onPageClick, true);
+    if(activeEl){ activeEl.contentEditable='false'; activeEl.style.outline=''; activeEl.style.background=origBg; activeEl=null; }
+  }
+
+  function onPageClick(e){
+    const panel = document.getElementById('op-panel');
+    if(panel && panel.contains(e.target)) return;
+    const login = document.getElementById('op-login');
+    if(login && login.contains(e.target)) return;
+
+    /* Deactivate previous */
+    if(activeEl && activeEl !== e.target){
+      activeEl.contentEditable = 'false';
+      activeEl.style.outline = '';
+      activeEl.style.background = origBg;
+      activeEl = null;
+    }
+
+    /* Find editable text node */
+    let el = e.target;
+    const skip = ['A','BUTTON','INPUT','TEXTAREA','NAV','HEADER','FOOTER'];
+    /* Allow links and buttons but edit their text */
+    if(['A','BUTTON'].includes(el.tagName)){
+      /* editable */
+    } else {
+      /* walk up to find a text-containing el */
+      let t = el;
+      while(t && t !== document.body){
+        if(t.childNodes.length && [...t.childNodes].some(n=>n.nodeType===3 && n.textContent.trim())){ el=t; break; }
+        t = t.parentElement;
+      }
+    }
+
+    if(!el || el === document.body || el === document.documentElement) return;
+
+    e.preventDefault(); e.stopPropagation();
+
+    origBg = el.style.background || '';
+    activeEl = el;
+    el.contentEditable = 'true';
+    el.style.outline = '2px solid #00f5ff';
+    el.style.background = 'rgba(0,245,255,0.06)';
+    el.focus();
+
+    /* Position cursor at click */
+    const range = document.caretRangeFromPoint ? document.caretRangeFromPoint(e.clientX, e.clientY) : null;
+    if(range){ const sel=window.getSelection(); sel.removeAllRanges(); sel.addRange(range); }
+
+    /* Update status */
+    const st = document.getElementById('op-status');
+    if(st) st.textContent = `Editing: <${el.tagName.toLowerCase()}>  (click elsewhere to deselect)`;
+  }
+
+  /* ── Styles ── */
+  function injectStyles(){
+    const s = document.createElement('style');
+    s.textContent = `
+      #op-login{position:fixed;inset:0;z-index:999999;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px)}
+      #op-login-box{background:#0c0c1e;border:1px solid rgba(0,245,255,0.3);border-radius:20px;padding:2.5rem;width:320px;text-align:center;box-shadow:0 0 60px rgba(0,245,255,0.15)}
+      #op-login-logo{font-size:2.5rem;margin-bottom:.75rem}
+      #op-login-title{font-family:'Syne','DM Sans',sans-serif;font-size:1.3rem;font-weight:700;color:#f0f0ff;margin-bottom:1.5rem;letter-spacing:-.02em}
+      #op-pw-input{width:100%;background:#070714;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:.75rem 1rem;font-size:15px;color:#f0f0ff;outline:none;margin-bottom:.5rem;font-family:'DM Sans',sans-serif}
+      #op-pw-input:focus{border-color:rgba(0,245,255,0.4);box-shadow:0 0 0 3px rgba(0,245,255,0.08)}
+      #op-pw-err{font-size:12px;color:#f472b6;min-height:18px;margin-bottom:.5rem}
+      #op-pw-btn{width:100%;padding:.8rem;border-radius:10px;border:none;background:linear-gradient(135deg,#8b5cf6,#00f5ff);color:#02020a;font-family:'Syne',sans-serif;font-size:14px;font-weight:800;cursor:pointer;margin-bottom:.5rem}
+      #op-cancel-btn{width:100%;padding:.6rem;border-radius:10px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:rgba(200,200,240,0.5);font-size:13px;cursor:pointer}
+      #op-panel{position:fixed;top:0;left:0;right:0;z-index:99999;background:rgba(2,2,10,0.97);border-bottom:1px solid rgba(0,245,255,0.25);padding:.6rem 1.25rem;font-family:'DM Sans',sans-serif;backdrop-filter:blur(20px);box-shadow:0 4px 40px rgba(0,245,255,0.1)}
+      #op-header{display:flex;align-items:center;justify-content:space-between;gap:1rem}
+      #op-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:#00f5ff;letter-spacing:.04em}
+      #op-status{font-size:12px;color:rgba(200,200,240,0.45);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .op-hdr-btn{padding:.35rem .8rem;border-radius:7px;border:1px solid rgba(0,245,255,0.2);background:transparent;color:rgba(200,200,240,0.7);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}
+      .op-hdr-btn:hover{border-color:rgba(0,245,255,0.5);color:#00f5ff;background:rgba(0,245,255,0.06)}
+      #op-color-panel{padding:.85rem 0 .3rem;display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:.5rem .75rem;align-items:center}
+      .op-color-row{display:flex;align-items:center;gap:.6rem}
+      .op-color-row label{font-size:12px;color:rgba(200,200,240,0.6);min-width:90px}
+      .op-color-row input[type=color]{width:36px;height:28px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);background:transparent;cursor:pointer;padding:2px}
+      .op-action-btn{padding:.4rem .9rem;border-radius:7px;border:1px solid rgba(244,114,182,0.3);background:transparent;color:#f472b6;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;grid-column:1/-1;width:fit-content}
+      .op-action-btn:hover{background:rgba(244,114,182,0.08)}
+    `;
+    document.head.appendChild(s);
+  }
+
+  /* Init */
+  injectStyles();
+  window.attachOwnerTrigger = attachTrigger;
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', attachTrigger);
+  } else {
+    attachTrigger();
+  }
+})();
+
+</script>
 </body>
 </html>
