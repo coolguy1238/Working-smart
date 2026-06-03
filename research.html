@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ValueAI – Research</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#02020a;--bg2:#070714;--bg3:#0c0c1e;--cyan:#00f5ff;--violet:#8b5cf6;--pink:#f472b6;--emerald:#34d399;--border:rgba(255,255,255,0.06);--border2:rgba(0,245,255,0.15);--text:#f0f0ff;--text2:rgba(200,200,240,0.6);--text3:rgba(200,200,240,0.3);--font:'DM Sans',-apple-system,sans-serif;--font-display:'Syne',sans-serif;}
+body{background:var(--bg);color:var(--text);font-family:var(--font);overflow-x:hidden;min-height:100vh}
+.bg-grid{position:fixed;inset:0;z-index:0;background-image:linear-gradient(rgba(0,245,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,245,255,0.025) 1px,transparent 1px);background-size:60px 60px;pointer-events:none}
+.orb{position:fixed;border-radius:50%;filter:blur(100px);pointer-events:none;z-index:0}
+.orb1{width:600px;height:600px;background:radial-gradient(circle,rgba(139,92,246,0.15) 0%,transparent 65%);top:-100px;left:-150px}
+.orb2{width:500px;height:500px;background:radial-gradient(circle,rgba(0,245,255,0.1) 0%,transparent 65%);bottom:0;right:-100px}
+nav{position:sticky;top:0;z-index:100;padding:.9rem 2rem;display:flex;align-items:center;justify-content:space-between;background:rgba(2,2,10,0.8);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo-mark{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--violet),var(--cyan));display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:18px;font-weight:800;color:#02020a;box-shadow:0 0 20px rgba(0,245,255,0.4)}
+.logo-text{font-family:var(--font-display);font-size:18px;font-weight:700;background:linear-gradient(90deg,#fff,var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.nav-links{display:flex;align-items:center;gap:1.5rem}
+.nav-links a{color:var(--text2);text-decoration:none;font-size:14px;font-weight:500;transition:color .2s}
+.nav-links a:hover,.nav-links a.active{color:var(--text)}
+.nav-cta{display:flex;align-items:center;gap:.75rem}
+.btn-ghost{padding:.5rem 1.1rem;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--cyan);font-size:13px;font-weight:600;cursor:pointer;text-decoration:none}
+.btn-primary{padding:.5rem 1.2rem;border-radius:8px;border:none;background:linear-gradient(135deg,var(--violet),var(--cyan));color:#02020a;font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;box-shadow:0 0 20px rgba(0,245,255,0.25)}
+main{position:relative;z-index:1;max-width:960px;margin:0 auto;padding:5rem 1.5rem 6rem}
+.tag{font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--cyan);margin-bottom:.75rem}
+h1{font-family:var(--font-display);font-size:clamp(2.5rem,5vw,3.8rem);font-weight:800;letter-spacing:-.04em;line-height:1.05;margin-bottom:1rem}
+.hero-sub{font-size:1.05rem;color:var(--text2);line-height:1.75;font-weight:300;max-width:560px;margin-bottom:4rem}
+
+.research-areas{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin-bottom:4rem}
+.area{background:rgba(7,7,20,0.8);border:1px solid var(--border);border-radius:18px;padding:1.75rem;transition:border-color .2s,box-shadow .2s}
+.area:hover{border-color:rgba(0,245,255,0.2);box-shadow:0 0 30px rgba(0,245,255,0.06)}
+.area-icon{font-size:28px;margin-bottom:.9rem;display:block}
+.area h3{font-family:var(--font-display);font-size:1.05rem;font-weight:700;margin-bottom:.5rem}
+.area p{font-size:13px;color:var(--text2);line-height:1.6}
+
+h2{font-family:var(--font-display);font-size:1.8rem;font-weight:800;letter-spacing:-.03em;margin-bottom:.5rem}
+.section-sub{font-size:14px;color:var(--text2);margin-bottom:2rem}
+
+.papers{display:flex;flex-direction:column;gap:1rem}
+.paper{background:rgba(7,7,20,0.8);border:1px solid var(--border);border-radius:16px;padding:1.5rem 1.75rem;display:flex;align-items:flex-start;gap:1.25rem;transition:border-color .2s,box-shadow .2s;cursor:pointer}
+.paper:hover{border-color:rgba(0,245,255,0.2);box-shadow:0 0 25px rgba(0,245,255,0.06)}
+.paper-tag{padding:.25rem .65rem;border-radius:100px;font-family:var(--font-display);font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;white-space:nowrap;flex-shrink:0;margin-top:.1rem}
+.pt-align{background:rgba(0,245,255,0.08);border:1px solid rgba(0,245,255,0.2);color:var(--cyan)}
+.pt-safety{background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.2);color:var(--emerald)}
+.pt-interp{background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.25);color:var(--violet)}
+.paper-body{flex:1;min-width:0}
+.paper h4{font-family:var(--font-display);font-size:1rem;font-weight:700;margin-bottom:.35rem;line-height:1.3}
+.paper p{font-size:13px;color:var(--text2);line-height:1.55;margin-bottom:.5rem}
+.paper-meta{font-size:12px;color:var(--text3)}
+.paper-arrow{color:var(--text3);font-size:18px;flex-shrink:0;margin-top:.1rem;transition:color .2s}
+.paper:hover .paper-arrow{color:var(--cyan)}
+
+@media(max-width:768px){.nav-links{display:none}}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+
+<nav>
+  <a href="index.html" class="nav-logo">
+    <div class="logo-mark">V</div>
+    <span class="logo-text">ValueAI</span>
+  </a>
+  <div class="nav-links">
+    <a href="index.html#features">Features</a>
+    <a href="pricing.html">Pricing</a>
+    <a href="research.html" class="active">Research</a>
+    <a href="company.html">Company</a>
+  </div>
+  <div class="nav-cta">
+    <a href="login.html" class="btn-ghost">Log in</a>
+    <a href="signup.html" class="btn-primary">Start free</a>
+  </div>
+</nav>
+
+<main>
+  <div class="tag">Research</div>
+  <h1>Building AI that's genuinely safe and helpful</h1>
+  <p class="hero-sub">Our research spans alignment, interpretability, and safety — because we think getting AI right matters more than getting there first.</p>
+
+  <div class="research-areas">
+    <div class="area"><span class="area-icon">🧭</span><h3>Alignment</h3><p>Training AI systems that reliably pursue intended goals and remain corrigible to human oversight across diverse conditions.</p></div>
+    <div class="area"><span class="area-icon">🔍</span><h3>Interpretability</h3><p>Understanding what's happening inside neural networks — developing tools to read, audit, and explain model behaviour.</p></div>
+    <div class="area"><span class="area-icon">🛡️</span><h3>Safety</h3><p>Preventing misuse, studying failure modes, and building evaluation frameworks to catch problems before deployment.</p></div>
+    <div class="area"><span class="area-icon">⚖️</span><h3>Policy & Governance</h3><p>Working with policymakers and researchers worldwide to develop standards for responsible AI deployment.</p></div>
+  </div>
+
+  <h2>Recent publications</h2>
+  <p class="section-sub">Selected work from the ValueAI research team</p>
+
+  <div class="papers">
+    <div class="paper">
+      <span class="paper-tag pt-align">Alignment</span>
+      <div class="paper-body">
+        <h4>Constitutional Methods for Scalable Value Alignment</h4>
+        <p>We introduce a framework for training AI systems to reason about values from a written specification, enabling more transparent and auditable alignment than reward modelling alone.</p>
+        <div class="paper-meta">ValueAI Research · 2025 · 34 pages</div>
+      </div>
+      <span class="paper-arrow">→</span>
+    </div>
+    <div class="paper">
+      <span class="paper-tag pt-interp">Interpretability</span>
+      <div class="paper-body">
+        <h4>Sparse Autoencoders Find Interpretable Directions in Large Language Models</h4>
+        <p>By training sparse autoencoders on residual stream activations, we identify thousands of interpretable features that generalise across model scales.</p>
+        <div class="paper-meta">ValueAI Research · 2025 · 28 pages</div>
+      </div>
+      <span class="paper-arrow">→</span>
+    </div>
+    <div class="paper">
+      <span class="paper-tag pt-safety">Safety</span>
+      <div class="paper-body">
+        <h4>Red-Teaming Language Models with Language Models</h4>
+        <p>We present an automated red-teaming methodology in which AI systems generate and evaluate adversarial prompts, significantly improving coverage over human-only red-teaming.</p>
+        <div class="paper-meta">ValueAI Research · 2024 · 22 pages</div>
+      </div>
+      <span class="paper-arrow">→</span>
+    </div>
+    <div class="paper">
+      <span class="paper-tag pt-align">Alignment</span>
+      <div class="paper-body">
+        <h4>Evaluating Honesty in Large Language Models: A Benchmark Suite</h4>
+        <p>We introduce six evaluations covering truthfulness, calibration, transparency, and non-deception, along with findings from applying them to current frontier models.</p>
+        <div class="paper-meta">ValueAI Research · 2024 · 41 pages</div>
+      </div>
+      <span class="paper-arrow">→</span>
+    </div>
+    <div class="paper">
+      <span class="paper-tag pt-interp">Interpretability</span>
+      <div class="paper-body">
+        <h4>Attention Patterns and Factual Recall in Transformer Language Models</h4>
+        <p>We trace how factual associations are stored and retrieved in transformer models, identifying the attention heads and MLP layers most responsible for knowledge retrieval.</p>
+        <div class="paper-meta">ValueAI Research · 2024 · 19 pages</div>
+      </div>
+      <span class="paper-arrow">→</span>
+    </div>
+  </div>
+</main>
+</body>
+</html>
