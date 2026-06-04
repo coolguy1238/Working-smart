@@ -1392,14 +1392,15 @@ This returns a dictionary of only the duplicates and their counts. Want me to ad
 </main>
 </div>
 <script>/* ============================================================
-   ValueAI Chat — Real AI via Anthropic API with streaming
+   ValueAI Chat — Full Claude-like implementation
    ============================================================ */
 
 /* ---------- state ---------- */
 let isTyping   = false;
 let abortCtrl  = null;
 let messageCount = 0;
-let conversationHistory = [];   // [{role:'user'|'assistant', content:'...'}]
+let conversationHistory = [];   // [{role, content}] — content may be array for multimodal
+let pendingAttachments = [];    // [{type:'image'|'pdf', mediaType, base64, name}]
 
 /* ---------- helpers ---------- */
 function autoGrow(el) {
@@ -1419,6 +1420,8 @@ function useSuggestion(text) {
 function resetChat() {
   conversationHistory = [];
   messageCount = 0;
+  pendingAttachments = [];
+  clearAttachmentPreviews();
   const thread  = document.getElementById('thread');
   const welcome = document.getElementById('welcome');
   if (thread)  { thread.innerHTML = ''; thread.style.display = 'none'; }
@@ -1431,6 +1434,8 @@ function resetChat() {
 function resetToThread() {
   conversationHistory = [];
   messageCount = 0;
+  pendingAttachments = [];
+  clearAttachmentPreviews();
   document.getElementById('welcome').style.display = 'none';
   const t = document.getElementById('thread');
   t.style.display = 'flex';
@@ -1447,56 +1452,206 @@ function loadConv(el, title) {
   callAPI();
 }
 
-/* ---------- markdown renderer ---------- */
-function renderMarkdown(raw) {
-  let t = raw
-    /* fenced code blocks */
-    .replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) =>
-      `<pre><code class="lang-${lang}">${escHtml(code.trim())}</code></pre>`)
-    /* inline code */
-    .replace(/`([^`\n]+)`/g, (_, c) => `<code>${escHtml(c)}</code>`)
-    /* headings */
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.+)$/gm,  '<h2>$1</h2>')
-    .replace(/^# (.+)$/gm,   '<h1>$1</h1>')
-    /* bold / italic */
-    .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
-    .replace(/\*\*(.+?)\*\*/g,     '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g,         '<em>$1</em>')
-    /* horizontal rule */
-    .replace(/^---+$/gm, '<hr>')
-    /* unordered lists — wrap runs */
-    .replace(/((?:^[ \t]*[-*+] .+\n?)+)/gm, m => {
-      const items = m.trim().split('\n')
-        .map(l => `<li>${l.replace(/^[ \t]*[-*+] /,'')}</li>`).join('');
-      return `<ul>${items}</ul>`;
-    })
-    /* ordered lists */
-    .replace(/((?:^\d+\. .+\n?)+)/gm, m => {
-      const items = m.trim().split('\n')
-        .map(l => `<li>${l.replace(/^\d+\. /,'')}</li>`).join('');
-      return `<ol>${items}</ol>`;
-    })
-    /* paragraphs — double newlines */
-    .replace(/\n{2,}/g, '</p><p>')
-    /* single newline inside paragraph */
-    .replace(/\n/g, '<br>');
-
-  return `<p>${t}</p>`;
+/* ---------- markdown renderer (full, Claude-like) ---------- */
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-function escHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+function renderMarkdown(raw) {
+  // Protect fenced code blocks first
+  const codeBlocks = [];
+  let t = raw.replace(/```([\w.-]*)\n?([\s\S]*?)```/g, (_, lang, code) => {
+    const idx = codeBlocks.length;
+    const escaped = escHtml(code.trim());
+    const langLabel = lang ? `<div class="code-lang">${escHtml(lang)}</div>` : '';
+    codeBlocks.push(`<div class="code-block">${langLabel}<button class="code-copy-btn" onclick="copyCode(this)">Copy</button><pre><code>${escaped}</code></pre></div>`);
+    return `\x00CODE${idx}\x00`;
+  });
+
+  // Inline code
+  t = t.replace(/`([^`\n]+)`/g, (_, c) => `<code>${escHtml(c)}</code>`);
+
+  // Headings
+  t = t.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
+  t = t.replace(/^### (.+)$/gm,  '<h3>$1</h3>');
+  t = t.replace(/^## (.+)$/gm,   '<h2>$1</h2>');
+  t = t.replace(/^# (.+)$/gm,    '<h1>$1</h1>');
+
+  // Blockquotes
+  t = t.replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
+
+  // Bold / italic / strikethrough
+  t = t.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+  t = t.replace(/\*\*(.+?)\*\*/g,     '<strong>$1</strong>');
+  t = t.replace(/\_\_(.+?)\_\_/g,     '<strong>$1</strong>');
+  t = t.replace(/\*(.+?)\*/g,         '<em>$1</em>');
+  t = t.replace(/\_(.+?)\_/g,         '<em>$1</em>');
+  t = t.replace(/~~(.+?)~~/g,         '<del>$1</del>');
+
+  // Horizontal rule
+  t = t.replace(/^---+$/gm, '<hr>');
+
+  // Tables
+  t = t.replace(/((?:^\|.+\|\n?)+)/gm, tableStr => {
+    const rows = tableStr.trim().split('\n').filter(r => r.trim());
+    if (rows.length < 2) return tableStr;
+    const isSep = r => /^\|[-:| ]+\|$/.test(r.trim());
+    let html = '<div class="table-wrap"><table>';
+    let inHead = true;
+    for (let i = 0; i < rows.length; i++) {
+      if (isSep(rows[i])) { inHead = false; continue; }
+      const cells = rows[i].trim().replace(/^\||\|$/g,'').split('|').map(c => c.trim());
+      html += '<tr>' + cells.map(c => inHead ? `<th>${c}</th>` : `<td>${c}</td>`).join('') + '</tr>';
+    }
+    html += '</table></div>';
+    return html;
+  });
+
+  // Unordered lists (support nesting)
+  t = t.replace(/((?:^[ \t]*[-*+] .+\n?)+)/gm, m => {
+    const items = m.trim().split('\n').map(l => `<li>${l.replace(/^[ \t]*[-*+] /,'')}</li>`).join('');
+    return `<ul>${items}</ul>`;
+  });
+
+  // Ordered lists
+  t = t.replace(/((?:^\d+\. .+\n?)+)/gm, m => {
+    const items = m.trim().split('\n').map(l => `<li>${l.replace(/^\d+\. /,'')}</li>`).join('');
+    return `<ol>${items}</ol>`;
+  });
+
+  // Links
+  t = t.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+
+  // Paragraphs
+  const lines = t.split('\n');
+  let result = '';
+  let para = '';
+  for (const line of lines) {
+    if (line.trim() === '' || line.startsWith('<h') || line.startsWith('<ul') || line.startsWith('<ol') || line.startsWith('<hr') || line.startsWith('<blockquote') || line.startsWith('<div') || line.startsWith('\x00CODE')) {
+      if (para.trim()) { result += `<p>${para.trim()}</p>`; para = ''; }
+      result += line + '\n';
+    } else {
+      para += (para ? '<br>' : '') + line;
+    }
+  }
+  if (para.trim()) result += `<p>${para.trim()}</p>`;
+
+  // Restore code blocks
+  result = result.replace(/\x00CODE(\d+)\x00/g, (_, i) => codeBlocks[+i]);
+
+  return result;
+}
+
+/* ---------- live streaming markdown (fast partial render) ---------- */
+function renderStreamingMarkdown(raw) {
+  // During streaming, do a lighter render so it stays fast
+  // Protect complete code blocks, render rest
+  const codeBlocks = [];
+  let t = raw.replace(/```([\w.-]*)\n([\s\S]*?)```/g, (_, lang, code) => {
+    const idx = codeBlocks.length;
+    codeBlocks.push(`<div class="code-block">${lang ? `<div class="code-lang">${escHtml(lang)}</div>` : ''}<pre><code>${escHtml(code.trim())}</code></pre></div>`);
+    return `\x00CODE${idx}\x00`;
+  });
+  // If there's an unclosed code block, render it as in-progress
+  t = t.replace(/```([\w.-]*)?\n?([\s\S]*)$/, (_, lang, code) => {
+    return `<div class="code-block">${lang ? `<div class="code-lang">${escHtml(lang)}</div>` : ''}<pre><code>${escHtml(code)}</code></pre></div>`;
+  });
+
+  t = t.replace(/`([^`\n]+)`/g, (_, c) => `<code>${escHtml(c)}</code>`);
+  t = t.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  t = t.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  t = t.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+  t = t.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  t = t.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  t = t.replace(/((?:^[ \t]*[-*+] .+\n?)+)/gm, m => {
+    const items = m.trim().split('\n').map(l => `<li>${l.replace(/^[ \t]*[-*+] /,'')}</li>`).join('');
+    return `<ul>${items}</ul>`;
+  });
+  t = t.replace(/((?:^\d+\. .+\n?)+)/gm, m => {
+    const items = m.trim().split('\n').map(l => `<li>${l.replace(/^\d+\. /,'')}</li>`).join('');
+    return `<ol>${items}</ol>`;
+  });
+  t = t.replace(/\n{2,}/g, '</p><p>').replace(/\n/g, '<br>');
+  t = `<p>${t}</p>`;
+  t = t.replace(/\x00CODE(\d+)\x00/g, (_, i) => codeBlocks[+i]);
+  return t;
+}
+
+/* ---------- copy code button ---------- */
+function copyCode(btn) {
+  const code = btn.closest('.code-block').querySelector('code').innerText;
+  navigator.clipboard.writeText(code).then(() => {
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 2000);
+  });
+}
+
+/* ---------- file attachment ---------- */
+function handleFileUpload(e) {
+  const files = Array.from(e.target.files);
+  files.forEach(file => readFile(file));
+  e.target.value = '';
+}
+
+function readFile(file) {
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const base64 = ev.target.result.split(',')[1];
+    const isImage = file.type.startsWith('image/');
+    const isPdf   = file.type === 'application/pdf';
+    if (!isImage && !isPdf) {
+      alert('Only images and PDFs are supported.');
+      return;
+    }
+    pendingAttachments.push({
+      type: isImage ? 'image' : 'document',
+      mediaType: file.type,
+      base64,
+      name: file.name
+    });
+    renderAttachmentPreviews();
+  };
+  reader.readAsDataURL(file);
+}
+
+function renderAttachmentPreviews() {
+  let bar = document.getElementById('attachBar');
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'attachBar';
+    const iw = document.querySelector('.input-wrap');
+    iw.insertBefore(bar, iw.querySelector('.input-box'));
+  }
+  bar.innerHTML = pendingAttachments.map((a, i) => `
+    <div class="attach-chip">
+      ${a.type === 'image'
+        ? `<img src="data:${a.mediaType};base64,${a.base64}" alt="${escHtml(a.name)}">`
+        : `<span class="attach-icon">📄</span>`}
+      <span class="attach-name">${escHtml(a.name)}</span>
+      <button class="attach-remove" onclick="removeAttachment(${i})">✕</button>
+    </div>`).join('');
+}
+
+function removeAttachment(i) {
+  pendingAttachments.splice(i, 1);
+  renderAttachmentPreviews();
+}
+
+function clearAttachmentPreviews() {
+  pendingAttachments = [];
+  const bar = document.getElementById('attachBar');
+  if (bar) bar.remove();
 }
 
 /* ---------- add a message bubble to the thread ---------- */
-function addMessage(role, text) {
+function addMessage(role, contentArg, attachments) {
   messageCount++;
   const thread = document.getElementById('thread');
 
   /* update sidebar title on first user message */
   if (role === 'user' && messageCount === 1) {
-    const preview = text.length > 36 ? text.slice(0, 36) + '…' : text;
+    const textOnly = typeof contentArg === 'string' ? contentArg : contentArg.find(c=>c.type==='text')?.text || 'New conversation';
+    const preview = textOnly.length > 36 ? textOnly.slice(0, 36) + '…' : textOnly;
     const item = document.querySelector('.conv-item.active .conv-txt');
     if (item) item.textContent = preview;
   }
@@ -1508,7 +1663,27 @@ function addMessage(role, text) {
 
   const bubble = document.createElement('div');
   bubble.className = `bubble ${role}`;
-  bubble.innerHTML = role === 'ai' ? renderMarkdown(text) : escHtml(text).replace(/\n/g,'<br>');
+
+  if (role === 'ai') {
+    bubble.innerHTML = renderMarkdown(typeof contentArg === 'string' ? contentArg : '');
+  } else {
+    // User bubble: show attachments then text
+    let html = '';
+    if (attachments && attachments.length) {
+      html += '<div class="user-attach-row">';
+      attachments.forEach(a => {
+        if (a.type === 'image') {
+          html += `<img class="user-attach-img" src="data:${a.mediaType};base64,${a.base64}" alt="${escHtml(a.name)}">`;
+        } else {
+          html += `<div class="user-attach-doc">📄 ${escHtml(a.name)}</div>`;
+        }
+      });
+      html += '</div>';
+    }
+    const textStr = typeof contentArg === 'string' ? contentArg : (contentArg.find(c=>c.type==='text')?.text || '');
+    html += escHtml(textStr).replace(/\n/g,'<br>');
+    bubble.innerHTML = html;
+  }
 
   row.appendChild(avatar);
   row.appendChild(bubble);
@@ -1527,7 +1702,7 @@ function addMessage(role, text) {
 
   thread.appendChild(group);
   thread.scrollTop = thread.scrollHeight;
-  return bubble;   /* return bubble so streaming can update it */
+  return bubble;
 }
 
 /* ---------- streaming bubble ---------- */
@@ -1549,7 +1724,6 @@ function addStreamBubble() {
 function finaliseStreamBubble(bubble, fullText) {
   bubble.classList.remove('streaming');
   bubble.innerHTML = renderMarkdown(fullText);
-  /* append actions */
   const group = document.getElementById('streamGroup');
   if (group) {
     group.removeAttribute('id');
@@ -1562,11 +1736,10 @@ function finaliseStreamBubble(bubble, fullText) {
       <button class="msg-action" onclick="retryLast()">↻ Retry</button>`;
     group.appendChild(actions);
   }
-  const thread = document.getElementById('thread');
-  thread.scrollTop = thread.scrollHeight;
+  document.getElementById('thread').scrollTop = 99999;
 }
 
-/* ---------- typing indicator (used while connecting) ---------- */
+/* ---------- typing indicator ---------- */
 function showTyping() {
   const thread = document.getElementById('thread');
   const wrap = document.createElement('div'); wrap.id = 'typingWrap'; wrap.className = 'msg-group';
@@ -1597,17 +1770,34 @@ function setBusy(busy) {
 function sendMessage() {
   const input = document.getElementById('userInput');
   const text  = input.value.trim();
-  if (!text || isTyping) return;
+  if ((!text && pendingAttachments.length === 0) || isTyping) return;
 
   document.getElementById('welcome').style.display = 'none';
   const thread = document.getElementById('thread');
   thread.style.display = 'flex';
 
-  addMessage('user', text);
-  conversationHistory.push({ role: 'user', content: text });
+  // Build content for API (multimodal if attachments)
+  const attachments = [...pendingAttachments];
+  let apiContent;
+  if (attachments.length > 0) {
+    apiContent = [];
+    attachments.forEach(a => {
+      apiContent.push({
+        type: a.type,
+        source: { type: 'base64', media_type: a.mediaType, data: a.base64 }
+      });
+    });
+    if (text) apiContent.push({ type: 'text', text });
+  } else {
+    apiContent = text;
+  }
+
+  addMessage('user', apiContent, attachments);
+  conversationHistory.push({ role: 'user', content: apiContent });
 
   input.value = '';
   input.style.height = 'auto';
+  clearAttachmentPreviews();
 
   callAPI();
 }
@@ -1628,9 +1818,9 @@ async function callAPI() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 2048,
+        max_tokens: 8096,
         stream: true,
-        system: 'You are ValueAI, a helpful, harmless, and honest AI assistant. You are knowledgeable, thoughtful, and concise. Format responses with markdown when helpful — use code blocks for code, bold for emphasis, and lists when appropriate.',
+        system: 'You are ValueAI, a highly capable AI assistant. Be genuinely helpful, honest, and thorough. Use markdown formatting — code blocks for code (with language specified), bold for emphasis, tables when comparing data, and bullet/numbered lists when appropriate. For code, always specify the language. Give complete, accurate answers.',
         messages: conversationHistory
       })
     });
@@ -1646,6 +1836,7 @@ async function callAPI() {
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
+    let renderThrottle = 0;
 
     while (true) {
       const { done, value } = await reader.read();
@@ -1653,7 +1844,7 @@ async function callAPI() {
 
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split('\n');
-      buffer = lines.pop(); /* keep incomplete line */
+      buffer = lines.pop();
 
       for (const line of lines) {
         if (!line.startsWith('data: ')) continue;
@@ -1663,11 +1854,15 @@ async function callAPI() {
           const evt = JSON.parse(data);
           if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') {
             fullText += evt.delta.text;
-            /* live update — show partial markdown as plain text with cursor */
-            streamBubble.innerHTML = escHtml(fullText).replace(/\n/g,'<br>') + '<span class="cursor-blink">▍</span>';
-            document.getElementById('thread').scrollTop = 99999;
+            // Throttle DOM updates to every ~50ms for performance
+            const now = Date.now();
+            if (now - renderThrottle > 50) {
+              renderThrottle = now;
+              streamBubble.innerHTML = renderStreamingMarkdown(fullText) + '<span class="cursor-blink">▍</span>';
+              document.getElementById('thread').scrollTop = 99999;
+            }
           }
-        } catch (_) { /* skip bad JSON */ }
+        } catch (_) { }
       }
     }
 
@@ -1677,11 +1872,8 @@ async function callAPI() {
       fullText = fullText || '_(generation stopped)_';
     } else {
       console.error('ValueAI API error:', err);
-      fullText = `Sorry, I couldn't reach the AI backend right now.\n\n**Error:** ${err.message}\n\nPlease check your API key is set or try again shortly.`;
-      if (!streamBubble) {
-        removeTyping();
-        streamBubble = addStreamBubble();
-      }
+      fullText = `Sorry, I ran into an error.\n\n**Error:** ${err.message}\n\nPlease check your internet connection or try again.`;
+      if (!streamBubble) { streamBubble = addStreamBubble(); }
     }
   }
 
@@ -1701,11 +1893,9 @@ function stopTyping() {
 /* ---------- retry last ---------- */
 function retryLast() {
   if (isTyping) return;
-  /* remove last assistant turn */
   if (conversationHistory.length && conversationHistory[conversationHistory.length-1].role === 'assistant') {
     conversationHistory.pop();
   }
-  /* remove last bubble group from DOM */
   const groups = document.querySelectorAll('#thread .msg-group');
   if (groups.length) groups[groups.length-1].remove();
   messageCount--;
@@ -1724,6 +1914,21 @@ function thumbAction(btn, dir) {
   btn.style.opacity = '0.4';
   btn.disabled = true;
 }
+
+/* ---------- drag & drop on chat ---------- */
+document.addEventListener('DOMContentLoaded', () => {
+  const chatMain = document.querySelector('.chat-main');
+  if (!chatMain) return;
+  chatMain.addEventListener('dragover', e => { e.preventDefault(); chatMain.classList.add('drag-over'); });
+  chatMain.addEventListener('dragleave', () => chatMain.classList.remove('drag-over'));
+  chatMain.addEventListener('drop', e => {
+    e.preventDefault();
+    chatMain.classList.remove('drag-over');
+    if (document.getElementById('view-chat').classList.contains('active')) {
+      Array.from(e.dataTransfer.files).forEach(readFile);
+    }
+  });
+});
 
 </script>
 <style>
