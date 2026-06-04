@@ -74,16 +74,24 @@ body{-webkit-overflow-scrolling:touch}
   .cta-card{padding:2rem 1.25rem !important}
   .card{padding:1.75rem 1.25rem !important;max-width:100% !important}
   
-  /* Chat page specific */
-  .messages{padding:.75rem 0 !important}
-  .msg-wrap{padding:0 .75rem !important}
-  .bubble{font-size:14px !important;max-width:calc(100vw - 80px) !important}
-  .input-area{padding:.75rem !important}
-  .input-wrap,.msg-wrap{max-width:100% !important}
-  .suggestions{padding:0 .75rem !important}
-  
-  /* Chat topbar on mobile */
-  .chat-topbar{padding:.6rem 1rem !important}
+  /* Chat page — full height layout on mobile */
+  #view-chat{height:100dvh !important;overflow:hidden !important}
+  .chat-main{width:100% !important;height:100dvh !important;display:flex !important;flex-direction:column !important;overflow:hidden !important}
+  .messages{flex:1 !important;overflow-y:auto !important;-webkit-overflow-scrolling:touch !important;padding:.5rem 0 !important}
+  .msg-wrap{padding:0 .75rem !important;max-width:100% !important}
+  .bubble{font-size:14px !important;max-width:calc(100vw - 90px) !important}
+  .input-area{padding:.6rem .75rem .85rem !important;flex-shrink:0 !important}
+  .input-wrap{max-width:100% !important}
+  .input-toolbar{padding:.5rem .75rem .2rem !important}
+  textarea{font-size:16px !important;min-height:44px !important;padding:.65rem .75rem .35rem !important}
+  .input-bottom{padding:.35rem .75rem .5rem !important}
+  .input-info{display:none !important}
+  .disclaimer{display:none !important}
+  .suggestions{grid-template-columns:1fr !important;padding:0 1rem !important;max-width:100% !important;gap:.5rem !important}
+  .sug{padding:.7rem .85rem !important}
+  .welcome{padding:1.5rem 1rem !important;gap:1rem !important}
+  .welcome h2{font-size:1.5rem !important}
+  .chat-topbar{padding:.5rem .75rem !important}
 
   /* Auth cards */
   .card{width:100% !important;margin:0 !important}
@@ -1406,11 +1414,13 @@ function useSuggestion(text) {
 }
 
 function resetChat() {
-  document.getElementById('thread').innerHTML = '';
-  document.getElementById('thread').style.display = 'none';
-  document.getElementById('welcome').style.display = 'flex';
-  document.querySelectorAll('.conv-item').forEach(i => i.classList.remove('active'));
-  document.querySelector('.conv-item').classList.add('active');
+  const thread = document.getElementById('thread');
+  const welcome = document.getElementById('welcome');
+  if(thread){ thread.innerHTML = ''; thread.style.display = 'none'; }
+  if(welcome){ welcome.style.display = 'flex'; }
+  const items = document.querySelectorAll('.conv-item');
+  items.forEach(i => i.classList.remove('active'));
+  if(items.length) items[0].classList.add('active');
   messageCount = 0;
 }
 
