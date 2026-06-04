@@ -1391,32 +1391,24 @@ This returns a dictionary of only the duplicates and their counts. Want me to ad
   </div>
 </main>
 </div>
-<script>/* chat page script */
+<script>/* ============================================================
+   ValueAI Chat — Real AI via Anthropic API with streaming
+   ============================================================ */
 
-let isTyping = false;
-let typingTimeout = null;
+/* ---------- state ---------- */
+let isTyping   = false;
+let abortCtrl  = null;
 let messageCount = 0;
+let conversationHistory = [];   // [{role:'user'|'assistant', content:'...'}]
 
-const responses = [
-  `That's a great question. Let me break it down clearly.\n\nThe core concept here involves several interconnected ideas. First, you'll want to consider the underlying principles that govern the system. Second, there are practical implications that emerge when you apply those principles at scale.\n\nHere's a concrete example to illustrate:\n\n<code>example = "This is how it works in practice"</code>\n\nWould you like me to go deeper on any particular aspect of this?`,
-  `Sure! Here's a clean approach to that:\n\n<pre><code>def solution(input_data):\n    # Process and transform\n    result = [x for x in input_data if x]\n    return sorted(result, key=lambda x: x[0])</code></pre>\n\nThis handles edge cases gracefully and runs in O(n log n) time. A few things to note:\n\n• The list comprehension filters out falsy values first\n• Sorting by the first element keeps things predictable\n• You can extend this with custom comparators\n\nWant me to add error handling or unit tests?`,
-  `Great thinking. Here's how I'd approach this:\n\n**Step 1** — Define your core objective clearly. Vague goals produce vague results.\n\n**Step 2** — Map the constraints. What can't change? What must you work within?\n\n**Step 3** — Identify the leverage points where small changes produce big outcomes.\n\nThis framework applies whether you're tackling a technical problem, a strategic decision, or a creative challenge. The key is resisting the urge to jump to solutions before you fully understand the shape of the problem.\n\nShall I apply this to your specific situation?`,
-  `Absolutely. The research on this is quite clear, though there are some important nuances worth understanding.\n\nThe mainstream view holds that this operates through a well-established mechanism. However, recent studies have challenged some assumptions — particularly around edge cases and scale effects.\n\nFor your purposes, the practical takeaway is: **the principle holds reliably under normal conditions**, but you should be aware of the exceptions if you're working at extremes.\n\nI can point you toward the most credible sources if you want to dig deeper. What's driving your interest in this area?`,
-  `Here's a polished version:\n\n---\n\n*The approach you're describing reflects a sophisticated understanding of the trade-offs involved. Rather than optimizing for a single metric, you're building resilience into the system at multiple levels.*\n\n---\n\nI've kept your core argument intact but sharpened the language and improved the flow. The structure now leads with the strongest claim and builds evidence from there. Let me know if you'd like a different tone — more formal, more punchy, or somewhere in between.`
-];
-
-let responseIndex = 0;
-
+/* ---------- helpers ---------- */
 function autoGrow(el) {
   el.style.height = 'auto';
   el.style.height = Math.min(el.scrollHeight, 200) + 'px';
 }
 
 function handleKey(e) {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    sendMessage();
-  }
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
 }
 
 function useSuggestion(text) {
@@ -1425,104 +1417,98 @@ function useSuggestion(text) {
 }
 
 function resetChat() {
-  const thread = document.getElementById('thread');
-  const welcome = document.getElementById('welcome');
-  if(thread){ thread.innerHTML = ''; thread.style.display = 'none'; }
-  if(welcome){ welcome.style.display = 'flex'; }
-  const items = document.querySelectorAll('.conv-item');
-  items.forEach(i => i.classList.remove('active'));
-  if(items.length) items[0].classList.add('active');
+  conversationHistory = [];
   messageCount = 0;
+  const thread  = document.getElementById('thread');
+  const welcome = document.getElementById('welcome');
+  if (thread)  { thread.innerHTML = ''; thread.style.display = 'none'; }
+  if (welcome) { welcome.style.display = 'flex'; }
+  document.querySelectorAll('.conv-item').forEach(i => i.classList.remove('active'));
+  const first = document.querySelector('.conv-item');
+  if (first) first.classList.add('active');
+}
+
+function resetToThread() {
+  conversationHistory = [];
+  messageCount = 0;
+  document.getElementById('welcome').style.display = 'none';
+  const t = document.getElementById('thread');
+  t.style.display = 'flex';
+  t.innerHTML = '';
 }
 
 function loadConv(el, title) {
   document.querySelectorAll('.conv-item').forEach(i => i.classList.remove('active'));
   el.classList.add('active');
   resetToThread();
-  addMessage('user', `Tell me about: ${title}`);
-  showTyping();
-  setTimeout(() => {
-    removeTyping();
-    addMessage('ai', responses[responseIndex % responses.length]);
-    responseIndex++;
-  }, 1200);
+  const msg = `Tell me about: ${title}`;
+  addMessage('user', msg);
+  conversationHistory.push({ role: 'user', content: msg });
+  callAPI();
 }
 
-function resetToThread() {
-  document.getElementById('welcome').style.display = 'none';
-  document.getElementById('thread').style.display = 'flex';
-  document.getElementById('thread').innerHTML = '';
-  messageCount = 0;
+/* ---------- markdown renderer ---------- */
+function renderMarkdown(raw) {
+  let t = raw
+    /* fenced code blocks */
+    .replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) =>
+      `<pre><code class="lang-${lang}">${escHtml(code.trim())}</code></pre>`)
+    /* inline code */
+    .replace(/`([^`\n]+)`/g, (_, c) => `<code>${escHtml(c)}</code>`)
+    /* headings */
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm,  '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm,   '<h1>$1</h1>')
+    /* bold / italic */
+    .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+    .replace(/\*\*(.+?)\*\*/g,     '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,         '<em>$1</em>')
+    /* horizontal rule */
+    .replace(/^---+$/gm, '<hr>')
+    /* unordered lists — wrap runs */
+    .replace(/((?:^[ \t]*[-*+] .+\n?)+)/gm, m => {
+      const items = m.trim().split('\n')
+        .map(l => `<li>${l.replace(/^[ \t]*[-*+] /,'')}</li>`).join('');
+      return `<ul>${items}</ul>`;
+    })
+    /* ordered lists */
+    .replace(/((?:^\d+\. .+\n?)+)/gm, m => {
+      const items = m.trim().split('\n')
+        .map(l => `<li>${l.replace(/^\d+\. /,'')}</li>`).join('');
+      return `<ol>${items}</ol>`;
+    })
+    /* paragraphs — double newlines */
+    .replace(/\n{2,}/g, '</p><p>')
+    /* single newline inside paragraph */
+    .replace(/\n/g, '<br>');
+
+  return `<p>${t}</p>`;
 }
 
-function sendMessage() {
-  const input = document.getElementById('userInput');
-  const text = input.value.trim();
-  if (!text || isTyping) return;
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
 
-  document.getElementById('welcome').style.display = 'none';
-  document.getElementById('thread').style.display = 'flex';
+/* ---------- add a message bubble to the thread ---------- */
+function addMessage(role, text) {
+  messageCount++;
+  const thread = document.getElementById('thread');
 
-  addMessage('user', text);
-  input.value = '';
-  input.style.height = 'auto';
-
-  // Update sidebar if first message
-  if (messageCount === 1) {
+  /* update sidebar title on first user message */
+  if (role === 'user' && messageCount === 1) {
     const preview = text.length > 36 ? text.slice(0, 36) + '…' : text;
     const item = document.querySelector('.conv-item.active .conv-txt');
     if (item) item.textContent = preview;
   }
 
-  showTyping();
-  isTyping = true;
-  document.getElementById('stopBtn').style.display = 'block';
-  document.getElementById('sendBtn').disabled = true;
-
-  const delay = 800 + Math.random() * 1000;
-  typingTimeout = setTimeout(() => {
-    removeTyping();
-    addMessage('ai', responses[responseIndex % responses.length]);
-    responseIndex++;
-    isTyping = false;
-    document.getElementById('stopBtn').style.display = 'none';
-    document.getElementById('sendBtn').disabled = false;
-  }, delay);
-}
-
-function stopTyping() {
-  clearTimeout(typingTimeout);
-  removeTyping();
-  isTyping = false;
-  document.getElementById('stopBtn').style.display = 'none';
-  document.getElementById('sendBtn').disabled = false;
-}
-
-function addMessage(role, text) {
-  messageCount++;
-  const thread = document.getElementById('thread');
-  const group = document.createElement('div');
-  group.className = 'msg-group';
-
-  const row = document.createElement('div');
-  row.className = `msg-row ${role}`;
-
-  const avatar = document.createElement('div');
-  avatar.className = `msg-avatar ${role}`;
+  const group  = document.createElement('div');  group.className = 'msg-group';
+  const row    = document.createElement('div');  row.className   = `msg-row ${role}`;
+  const avatar = document.createElement('div');  avatar.className = `msg-avatar ${role}`;
   avatar.textContent = role === 'ai' ? 'V' : 'U';
 
   const bubble = document.createElement('div');
   bubble.className = `bubble ${role}`;
-
-  // Render simple markdown-ish
-  let html = text
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/<pre><code>([\s\S]*?)<\/code><\/pre>/g, (m, c) => `<pre><code>${c}</code></pre>`)
-    .replace(/•\s(.+)/g, '<span style="display:block;padding-left:.5rem">• $1</span>')
-    .replace(/\n/g, '<br>');
-
-  bubble.innerHTML = html;
+  bubble.innerHTML = role === 'ai' ? renderMarkdown(text) : escHtml(text).replace(/\n/g,'<br>');
 
   row.appendChild(avatar);
   row.appendChild(bubble);
@@ -1533,33 +1519,62 @@ function addMessage(role, text) {
     actions.className = 'msg-actions';
     actions.innerHTML = `
       <button class="msg-action" onclick="copyMsg(this)">📋 Copy</button>
-      <button class="msg-action">👍</button>
-      <button class="msg-action">👎</button>
-      <button class="msg-action">↻ Retry</button>
-    `;
+      <button class="msg-action" onclick="thumbAction(this,'up')">👍</button>
+      <button class="msg-action" onclick="thumbAction(this,'down')">👎</button>
+      <button class="msg-action" onclick="retryLast()">↻ Retry</button>`;
     group.appendChild(actions);
   }
 
   thread.appendChild(group);
   thread.scrollTop = thread.scrollHeight;
+  return bubble;   /* return bubble so streaming can update it */
 }
 
+/* ---------- streaming bubble ---------- */
+function addStreamBubble() {
+  messageCount++;
+  const thread = document.getElementById('thread');
+  const group  = document.createElement('div'); group.className = 'msg-group'; group.id = 'streamGroup';
+  const row    = document.createElement('div'); row.className = 'msg-row ai';
+  const avatar = document.createElement('div'); avatar.className = 'msg-avatar ai'; avatar.textContent = 'V';
+  const bubble = document.createElement('div'); bubble.className = 'bubble ai streaming';
+  bubble.innerHTML = '<span class="cursor-blink">▍</span>';
+  row.appendChild(avatar); row.appendChild(bubble);
+  group.appendChild(row);
+  thread.appendChild(group);
+  thread.scrollTop = thread.scrollHeight;
+  return bubble;
+}
+
+function finaliseStreamBubble(bubble, fullText) {
+  bubble.classList.remove('streaming');
+  bubble.innerHTML = renderMarkdown(fullText);
+  /* append actions */
+  const group = document.getElementById('streamGroup');
+  if (group) {
+    group.removeAttribute('id');
+    const actions = document.createElement('div');
+    actions.className = 'msg-actions';
+    actions.innerHTML = `
+      <button class="msg-action" onclick="copyMsg(this)">📋 Copy</button>
+      <button class="msg-action" onclick="thumbAction(this,'up')">👍</button>
+      <button class="msg-action" onclick="thumbAction(this,'down')">👎</button>
+      <button class="msg-action" onclick="retryLast()">↻ Retry</button>`;
+    group.appendChild(actions);
+  }
+  const thread = document.getElementById('thread');
+  thread.scrollTop = thread.scrollHeight;
+}
+
+/* ---------- typing indicator (used while connecting) ---------- */
 function showTyping() {
   const thread = document.getElementById('thread');
-  const wrap = document.createElement('div');
-  wrap.id = 'typingWrap';
-  wrap.className = 'msg-group';
-  const row = document.createElement('div');
-  row.className = 'msg-row';
-  const av = document.createElement('div');
-  av.className = 'msg-avatar ai';
-  av.textContent = 'V';
-  const ind = document.createElement('div');
-  ind.className = 'typing-indicator';
+  const wrap = document.createElement('div'); wrap.id = 'typingWrap'; wrap.className = 'msg-group';
+  const row  = document.createElement('div'); row.className = 'msg-row';
+  const av   = document.createElement('div'); av.className = 'msg-avatar ai'; av.textContent = 'V';
+  const ind  = document.createElement('div'); ind.className = 'typing-indicator';
   ind.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
-  row.appendChild(av);
-  row.appendChild(ind);
-  wrap.appendChild(row);
+  row.appendChild(av); row.appendChild(ind); wrap.appendChild(row);
   thread.appendChild(wrap);
   thread.scrollTop = thread.scrollHeight;
 }
@@ -1569,15 +1584,168 @@ function removeTyping() {
   if (t) t.remove();
 }
 
+/* ---------- set UI busy/idle ---------- */
+function setBusy(busy) {
+  isTyping = busy;
+  const stop = document.getElementById('stopBtn');
+  const send = document.getElementById('sendBtn');
+  if (stop) stop.style.display = busy ? 'block' : 'none';
+  if (send) send.disabled = busy;
+}
+
+/* ---------- main send ---------- */
+function sendMessage() {
+  const input = document.getElementById('userInput');
+  const text  = input.value.trim();
+  if (!text || isTyping) return;
+
+  document.getElementById('welcome').style.display = 'none';
+  const thread = document.getElementById('thread');
+  thread.style.display = 'flex';
+
+  addMessage('user', text);
+  conversationHistory.push({ role: 'user', content: text });
+
+  input.value = '';
+  input.style.height = 'auto';
+
+  callAPI();
+}
+
+/* ---------- call the Anthropic API with streaming ---------- */
+async function callAPI() {
+  setBusy(true);
+  showTyping();
+
+  abortCtrl = new AbortController();
+  let fullText = '';
+  let streamBubble = null;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      signal: abortCtrl.signal,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 2048,
+        stream: true,
+        system: 'You are ValueAI, a helpful, harmless, and honest AI assistant. You are knowledgeable, thoughtful, and concise. Format responses with markdown when helpful — use code blocks for code, bold for emphasis, and lists when appropriate.',
+        messages: conversationHistory
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || `API error ${res.status}`);
+    }
+
+    removeTyping();
+    streamBubble = addStreamBubble();
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop(); /* keep incomplete line */
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6).trim();
+        if (data === '[DONE]') continue;
+        try {
+          const evt = JSON.parse(data);
+          if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') {
+            fullText += evt.delta.text;
+            /* live update — show partial markdown as plain text with cursor */
+            streamBubble.innerHTML = escHtml(fullText).replace(/\n/g,'<br>') + '<span class="cursor-blink">▍</span>';
+            document.getElementById('thread').scrollTop = 99999;
+          }
+        } catch (_) { /* skip bad JSON */ }
+      }
+    }
+
+  } catch (err) {
+    removeTyping();
+    if (err.name === 'AbortError') {
+      fullText = fullText || '_(generation stopped)_';
+    } else {
+      console.error('ValueAI API error:', err);
+      fullText = `Sorry, I couldn't reach the AI backend right now.\n\n**Error:** ${err.message}\n\nPlease check your API key is set or try again shortly.`;
+      if (!streamBubble) {
+        removeTyping();
+        streamBubble = addStreamBubble();
+      }
+    }
+  }
+
+  if (streamBubble) finaliseStreamBubble(streamBubble, fullText);
+  conversationHistory.push({ role: 'assistant', content: fullText });
+  setBusy(false);
+  abortCtrl = null;
+}
+
+/* ---------- stop button ---------- */
+function stopTyping() {
+  if (abortCtrl) abortCtrl.abort();
+  removeTyping();
+  setBusy(false);
+}
+
+/* ---------- retry last ---------- */
+function retryLast() {
+  if (isTyping) return;
+  /* remove last assistant turn */
+  if (conversationHistory.length && conversationHistory[conversationHistory.length-1].role === 'assistant') {
+    conversationHistory.pop();
+  }
+  /* remove last bubble group from DOM */
+  const groups = document.querySelectorAll('#thread .msg-group');
+  if (groups.length) groups[groups.length-1].remove();
+  messageCount--;
+  callAPI();
+}
+
+/* ---------- copy / thumbs ---------- */
 function copyMsg(btn) {
   const bubble = btn.closest('.msg-group').querySelector('.bubble');
   navigator.clipboard.writeText(bubble.innerText).then(() => {
     btn.textContent = '✓ Copied';
-    setTimeout(() => btn.textContent = '📋 Copy', 1500);
+    setTimeout(() => btn.textContent = '📋 Copy', 1800);
   });
+}
+function thumbAction(btn, dir) {
+  btn.style.opacity = '0.4';
+  btn.disabled = true;
 }
 
 </script>
+<style>
+/* streaming cursor blink */
+.cursor-blink { display:inline-block; animation: cur .7s steps(1) infinite; color: var(--cyan,#00f5ff); }
+@keyframes cur { 0%,100%{opacity:1} 50%{opacity:0} }
+.bubble.streaming { min-height: 1.4em; }
+/* nicer code blocks inside bubbles */
+.bubble pre { background: rgba(0,0,0,0.4); border:1px solid rgba(0,245,255,0.12); border-radius:10px; padding:.9rem 1rem; margin:.6rem 0; overflow-x:auto; }
+.bubble pre code { font-family: 'Fira Code',monospace,monospace; font-size:13px; color:#a5f3fc; background:none; border:none; padding:0; }
+.bubble code { background:rgba(0,245,255,0.08); border:1px solid rgba(0,245,255,0.15); border-radius:4px; padding:.1em .35em; font-size:13px; color:#67e8f9; font-family:monospace; }
+.bubble h1,.bubble h2,.bubble h3 { font-family:'Syne',sans-serif; font-weight:700; margin:.6rem 0 .3rem; }
+.bubble h1{font-size:1.1rem} .bubble h2{font-size:1rem} .bubble h3{font-size:.95rem}
+.bubble ul,.bubble ol { padding-left:1.4rem; margin:.4rem 0; }
+.bubble li { margin:.25rem 0; line-height:1.55; }
+.bubble hr { border:none; border-top:1px solid rgba(255,255,255,0.1); margin:.75rem 0; }
+.bubble strong { color: var(--cyan,#00f5ff); font-weight:600; }
+.bubble em { color: rgba(200,200,240,0.8); font-style:italic; }
+.bubble p { margin:.4rem 0; }
+.bubble p:first-child { margin-top:0; }
+.bubble p:last-child  { margin-bottom:0; }
+</style>
 <script>/* pricing page script */
 
 function toggleFaq(el) {
