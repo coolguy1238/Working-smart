@@ -2,70 +2,111 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>ValueAI</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
 <style>
-/* ── SPA shell + mobile fixes ── */
+/* === GLOBAL RESET & SHELL === */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{max-width:100%;overflow-x:hidden}
-.spa-view{display:none}
-.spa-view.active{display:block}
-.spa-view.chat-view.active{display:flex}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+html,body{width:100%;max-width:100%;overflow-x:hidden}
+body{-webkit-overflow-scrolling:touch}
 
-/* ── Global mobile nav fix (applies to ALL pages) ── */
-nav{padding:.75rem 1rem !important;flex-wrap:nowrap}
+/* === SPA VIEW SWITCHING === */
+.spa-view{display:none !important}
+.spa-view.active{display:block !important}
+.spa-view.chat-view.active{display:flex !important}
+
+/* === MOBILE NAV — hides desktop links, shows hamburger === */
 .nav-links{display:none !important}
-.nav-cta{gap:.4rem !important}
-.btn-ghost{padding:.4rem .7rem !important;font-size:12px !important}
-.btn-primary{padding:.4rem .8rem !important;font-size:12px !important}
+.mob-ham{display:flex !important;flex-direction:column;justify-content:center;gap:5px;width:36px;height:36px;cursor:pointer;background:transparent;border:none;flex-shrink:0;padding:4px;margin-left:auto}
+.mob-ham span{display:block;width:22px;height:2px;background:rgba(200,200,240,0.75);border-radius:2px}
 
-/* Hamburger menu */
-#mob-menu-btn{display:flex;flex-direction:column;gap:4px;cursor:pointer;padding:6px;background:transparent;border:none;z-index:200}
-#mob-menu-btn span{width:20px;height:2px;background:rgba(200,200,240,0.7);border-radius:2px;transition:all .2s;display:block}
-#mob-drawer{position:fixed;top:0;left:0;right:0;bottom:0;z-index:1000;background:rgba(2,2,10,0.97);backdrop-filter:blur(20px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5rem;transform:translateX(100%);transition:transform .3s ease}
+/* === MOBILE DRAWER === */
+#mob-drawer{position:fixed;inset:0;z-index:9000;background:rgba(2,2,10,0.98);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.75rem;transform:translateX(110%);transition:transform .28s cubic-bezier(.4,0,.2,1);padding:2rem}
 #mob-drawer.open{transform:translateX(0)}
-#mob-drawer a{color:#f0f0ff;text-decoration:none;font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:700;letter-spacing:-.02em}
+#mob-drawer a{color:#f0f0ff;text-decoration:none;font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:700;letter-spacing:-.03em;padding:.25rem 0}
 #mob-drawer a:active{color:#00f5ff}
-#mob-close{position:absolute;top:1.5rem;right:1.5rem;background:transparent;border:none;color:rgba(200,200,240,0.5);font-size:28px;cursor:pointer;line-height:1}
+#mob-close-btn{position:absolute;top:1.25rem;right:1.25rem;background:transparent;border:none;color:rgba(200,200,240,0.5);font-size:30px;line-height:1;cursor:pointer;padding:.25rem}
+#mob-drawer .mob-cta{margin-top:.5rem;padding:.75rem 2rem;border-radius:12px;background:linear-gradient(135deg,#8b5cf6,#00f5ff);color:#02020a;font-family:'Syne',sans-serif;font-weight:800;font-size:1rem}
 
-/* Fix overflow on all sections */
-section, main, .hero, .features-section, .usecases-section, .stats-section,
-.free-section, .pricing-header, .plans, .compare-wrap, .faq-wrap,
-.mission, .values, .team-section, .cta, .chat-preview{
-  max-width:100% !important;
-  overflow-x:hidden !important;
-}
-
-/* Mobile padding for all pages */
-@media(max-width:600px){
-  section{padding:3rem 1rem !important}
-  main{padding:3rem 1rem 4rem !important}
-  .hero{padding:3rem 1rem !important;min-height:auto !important}
-  .features-grid{grid-template-columns:1fr !important}
-  .plans{grid-template-columns:1fr !important}
+/* === GLOBAL MOBILE CONTENT FIX === */
+@media(max-width:767px){
+  /* Prevent ANY element from overflowing phone width */
+  .bg-grid,.orb,.orb1,.orb2,.orb3{pointer-events:none}
+  
+  /* Nav */
+  nav{padding:.65rem 1rem !important}
+  .nav-cta .btn-ghost,.nav-cta .btn-primary{display:none !important}
+  
+  /* Chat page sidebar — HIDE on mobile */
+  .sidebar{display:none !important}
+  .chat-main{width:100% !important;min-width:0 !important}
+  
+  /* Back link on auth pages */
+  .back{font-size:12px;top:1rem;left:1rem}
+  
+  /* Hero */
+  .hero{padding:2.5rem 1.25rem !important;min-height:auto !important;gap:1rem !important}
+  .hero h1{font-size:clamp(2rem,9vw,3.2rem) !important;letter-spacing:-.03em !important}
+  .hero-sub{font-size:.95rem !important}
+  .hero-cta{flex-direction:column !important;width:100% !important}
+  .hero-cta a,.hero-cta button{width:100% !important;text-align:center !important}
+  .btn-hero,.btn-hero-ghost{padding:.8rem 1.5rem !important;font-size:14px !important;width:100%}
+  
+  /* Sections */
+  section{padding:2.5rem 1.25rem !important}
+  main{padding:2.5rem 1.25rem 4rem !important}
+  
+  /* Grids — all single column */
+  .features-grid,.uc-grid,.values-grid,.research-areas{grid-template-columns:1fr !important}
+  .plans{grid-template-columns:1fr !important;padding:0 !important}
+  .plan-compare{grid-template-columns:1fr 1fr !important}
   .team-grid{grid-template-columns:1fr 1fr !important}
-  .values-grid{grid-template-columns:1fr !important}
-  .research-areas{grid-template-columns:1fr !important}
-  .uc-grid{grid-template-columns:1fr !important}
   .stats-grid{grid-template-columns:1fr 1fr !important}
   .suggestions{grid-template-columns:1fr !important}
-  .compare-table{font-size:11px !important}
-  .compare-table th,.compare-table td{padding:.5rem .4rem !important}
-  .hero h1{font-size:2.4rem !important}
-  .section-title{font-size:1.6rem !important}
-  .cta-card{padding:2rem 1rem !important}
-  .free-card{padding:2rem 1rem !important}
-  .card{padding:1.75rem 1.25rem !important}
+  .row2{grid-template-columns:1fr !important}
+  
+  /* Cards */
+  .free-card{padding:1.75rem 1.25rem !important}
   .mission-card{padding:1.75rem 1.25rem !important}
-  .footer-grid{grid-template-columns:1fr 1fr !important;gap:2rem !important}
-  .chat-preview{padding:0 1rem 3rem !important}
-  .sidebar{width:200px !important}
+  .cta-card{padding:2rem 1.25rem !important}
+  .card{padding:1.75rem 1.25rem !important;max-width:100% !important}
+  
+  /* Chat page specific */
+  .messages{padding:.75rem 0 !important}
+  .msg-wrap{padding:0 .75rem !important}
+  .bubble{font-size:14px !important;max-width:calc(100vw - 80px) !important}
+  .input-area{padding:.75rem !important}
+  .input-wrap,.msg-wrap{max-width:100% !important}
+  .suggestions{padding:0 .75rem !important}
+  
+  /* Chat topbar on mobile */
+  .chat-topbar{padding:.6rem 1rem !important}
+
+  /* Auth cards */
+  .card{width:100% !important;margin:0 !important}
+  body{padding:1.25rem !important;align-items:flex-start !important;padding-top:4rem !important}
+  
+  /* Tables */
+  .compare-table{font-size:11px !important}
+  .compare-table th,.compare-table td{padding:.45rem .35rem !important}
+  .compare-wrap{overflow-x:auto !important}
+  
+  /* Footer */
+  .footer-grid{grid-template-columns:1fr 1fr !important;gap:1.75rem !important}
+  
+  /* Section titles */
+  .section-title{font-size:1.65rem !important}
+  h1[style]{font-size:clamp(2rem,8vw,3rem) !important}
+  
+  /* Chat preview on homepage */
+  .chat-preview{padding:0 1.25rem 3rem !important}
+  .chat-body{padding:1rem !important}
 }
 </style>
-
-<style data-page="home" id="style-home" class="page-style" style="display:none">*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+<style id="style-home" class="page-style" data-page="home" style="display:none">*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --bg:#02020a;--bg2:#070714;--bg3:#0c0c1e;
   --cyan:#00f5ff;--violet:#8b5cf6;--pink:#f472b6;--emerald:#34d399;
@@ -226,7 +267,7 @@ footer{position:relative;z-index:1;border-top:1px solid var(--border);padding:3r
   .plan-compare{grid-template-columns:1fr}
   .footer-bottom{flex-direction:column;text-align:center}
 }</style>
-<style data-page="chat" id="style-chat" class="page-style" style="display:none">*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+<style id="style-chat" class="page-style" data-page="chat" style="display:none">*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --bg:#02020a;--bg2:#070714;--bg3:#0c0c1e;--bg4:#111128;
   --cyan:#00f5ff;--violet:#8b5cf6;--pink:#f472b6;--emerald:#34d399;
@@ -339,7 +380,7 @@ textarea::placeholder{color:var(--text3)}
   .sidebar{display:none}
   .suggestions{grid-template-columns:1fr}
 }</style>
-<style data-page="pricing" id="style-pricing" class="page-style" style="display:none">*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+<style id="style-pricing" class="page-style" data-page="pricing" style="display:none">*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#02020a;--bg2:#070714;--bg3:#0c0c1e;--cyan:#00f5ff;--violet:#8b5cf6;--pink:#f472b6;--emerald:#34d399;--border:rgba(255,255,255,0.06);--border2:rgba(0,245,255,0.15);--text:#f0f0ff;--text2:rgba(200,200,240,0.6);--text3:rgba(200,200,240,0.3);--font:'DM Sans',-apple-system,sans-serif;--font-display:'Syne',sans-serif;}
 html{scroll-behavior:smooth}
 body{background:var(--bg);color:var(--text);font-family:var(--font);overflow-x:hidden;min-height:100vh}
@@ -428,7 +469,7 @@ h1 em{font-style:normal;background:linear-gradient(90deg,var(--violet),var(--cya
   .plans{grid-template-columns:1fr}
   .nav-links{display:none}
 }</style>
-<style data-page="signup" id="style-signup" class="page-style" style="display:none">*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+<style id="style-signup" class="page-style" data-page="signup" style="display:none">*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#02020a;--bg2:#070714;--bg3:#0c0c1e;--cyan:#00f5ff;--violet:#8b5cf6;--pink:#f472b6;--emerald:#34d399;--border:rgba(255,255,255,0.06);--border2:rgba(0,245,255,0.2);--text:#f0f0ff;--text2:rgba(200,200,240,0.6);--text3:rgba(200,200,240,0.3);--font:'DM Sans',-apple-system,sans-serif;--font-display:'Syne',sans-serif;}
 html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:var(--font)}
 body{display:flex;align-items:center;justify-content:center;padding:2rem;min-height:100vh}
@@ -466,7 +507,7 @@ input::placeholder{color:var(--text3)}
 .submit:hover{box-shadow:0 0 40px rgba(0,245,255,0.5);transform:translateY(-1px)}
 .foot{text-align:center;margin-top:1.25rem;font-size:13px;color:var(--text3)}
 .foot a{color:var(--cyan);text-decoration:none;font-weight:500}</style>
-<style data-page="login" id="style-login" class="page-style" style="display:none">*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+<style id="style-login" class="page-style" data-page="login" style="display:none">*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#02020a;--bg2:#070714;--bg3:#0c0c1e;--cyan:#00f5ff;--violet:#8b5cf6;--pink:#f472b6;--border:rgba(255,255,255,0.06);--border2:rgba(0,245,255,0.2);--text:#f0f0ff;--text2:rgba(200,200,240,0.6);--text3:rgba(200,200,240,0.3);--font:'DM Sans',-apple-system,sans-serif;--font-display:'Syne',sans-serif;}
 html,body{height:100%}
 body{background:var(--bg);color:var(--text);font-family:var(--font);display:flex;align-items:center;justify-content:center;min-height:100vh;overflow-x:hidden}
@@ -503,7 +544,7 @@ input::placeholder{color:var(--text3)}
 .foot{text-align:center;margin-top:1.5rem;font-size:13px;color:var(--text3)}
 .foot a{color:var(--cyan);text-decoration:none;font-weight:500}
 .foot a:hover{text-decoration:underline}</style>
-<style data-page="company" id="style-company" class="page-style" style="display:none">*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+<style id="style-company" class="page-style" data-page="company" style="display:none">*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#02020a;--bg2:#070714;--bg3:#0c0c1e;--cyan:#00f5ff;--violet:#8b5cf6;--pink:#f472b6;--emerald:#34d399;--border:rgba(255,255,255,0.06);--border2:rgba(0,245,255,0.15);--text:#f0f0ff;--text2:rgba(200,200,240,0.6);--text3:rgba(200,200,240,0.3);--font:'DM Sans',-apple-system,sans-serif;--font-display:'Syne',sans-serif;}
 html{scroll-behavior:smooth}
 body{background:var(--bg);color:var(--text);font-family:var(--font);overflow-x:hidden;min-height:100vh}
@@ -567,7 +608,7 @@ main{position:relative;z-index:1}
 .btn-hero{padding:.85rem 2rem;border-radius:12px;border:none;background:linear-gradient(135deg,var(--violet),var(--cyan));color:#02020a;font-family:var(--font-display);font-size:15px;font-weight:800;cursor:pointer;text-decoration:none;box-shadow:0 0 30px rgba(0,245,255,0.35);display:inline-block}
 
 @media(max-width:768px){.nav-links{display:none}}</style>
-<style data-page="research" id="style-research" class="page-style" style="display:none">*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+<style id="style-research" class="page-style" data-page="research" style="display:none">*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#02020a;--bg2:#070714;--bg3:#0c0c1e;--cyan:#00f5ff;--violet:#8b5cf6;--pink:#f472b6;--emerald:#34d399;--border:rgba(255,255,255,0.06);--border2:rgba(0,245,255,0.15);--text:#f0f0ff;--text2:rgba(200,200,240,0.6);--text3:rgba(200,200,240,0.3);--font:'DM Sans',-apple-system,sans-serif;--font-display:'Syne',sans-serif;}
 body{background:var(--bg);color:var(--text);font-family:var(--font);overflow-x:hidden;min-height:100vh}
 .bg-grid{position:fixed;inset:0;z-index:0;background-image:linear-gradient(rgba(0,245,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,245,255,0.025) 1px,transparent 1px);background-size:60px 60px;pointer-events:none}
@@ -616,6 +657,14 @@ h2{font-family:var(--font-display);font-size:1.8rem;font-weight:800;letter-spaci
 @media(max-width:768px){.nav-links{display:none}}</style>
 </head>
 <body>
+<div id="mob-drawer">
+  <button id="mob-close-btn" onclick="closeDrw()">✕</button>
+  <a href="#home" onclick="navigate('home');return false;">Home</a>
+  <a href="#pricing" onclick="navigate('pricing');return false;">Pricing</a>
+  <a href="#research" onclick="navigate('research');return false;">Research</a>
+  <a href="#company" onclick="navigate('company');return false;">Company</a>
+  <a href="#chat" onclick="navigate('chat');return false;" class="mob-cta">Try ValueAI</a>
+</div>
 <div id="view-home" class="spa-view" data-page="home">
 <div class="bg-grid"></div>
 <div class="orb orb1"></div>
@@ -623,20 +672,20 @@ h2{font-family:var(--font-display);font-size:1.8rem;font-weight:800;letter-spaci
 <div class="orb orb3"></div>
 
 <nav>
-  <a href="#home" onclick="navigate('home');return false;" class="nav-logo">
+  <a href='#home' onclick="navigate('home');return false;" class="nav-logo">
     <div class="logo-mark">V</div>
     <span class="logo-text">ValueAI</span>
   </a>
   <div class="nav-links">
     <a href="#features">Features</a>
-    <a href="#pricing" onclick="navigate('pricing');return false;">Pricing</a>
+    <a href='#pricing' onclick="navigate('pricing');return false;">Pricing</a>
     <a href="#usecases">Use cases</a>
-    <a href="#research" onclick="navigate('research');return false;">Research</a>
-    <a href="#company" onclick="navigate('company');return false;">Company</a>
+    <a href='#research' onclick="navigate('research');return false;">Research</a>
+    <a href='#company' onclick="navigate('company');return false;">Company</a>
   </div>
   <div class="nav-cta">
-    <a href="#login" onclick="navigate('login');return false;" class="btn-ghost">Log in</a>
-    <a href="#signup" onclick="navigate('signup');return false;" class="btn-primary">Start free</a>
+    <a href='#login' onclick="navigate('login');return false;" class="btn-ghost">Log in</a>
+    <a href='#signup' onclick="navigate('signup');return false;" class="btn-primary">Start free</a>
   </div>
 </nav>
 
@@ -650,8 +699,8 @@ h2{font-family:var(--font-display);font-size:1.8rem;font-weight:800;letter-spaci
     </h1>
     <p class="hero-sub">ValueAI is your intelligent AI assistant — thoughtful, capable, safe. Write, analyze, code, think. Every premium feature, completely free forever.</p>
     <div class="hero-cta">
-      <a href="#signup" onclick="navigate('signup');return false;" class="btn-hero">Start for free →</a>
-      <a href="#chat" onclick="navigate('chat');return false;" class="btn-hero-ghost">Try ValueAI now</a>
+      <a href='#signup' onclick="navigate('signup');return false;" class="btn-hero">Start for free →</a>
+      <a href='#chat' onclick="navigate('chat');return false;" class="btn-hero-ghost">Try ValueAI now</a>
     </div>
     <p class="hero-note"><span>No credit card.</span> No trial period. Every feature unlocked from day one.</p>
   </div>
@@ -796,8 +845,8 @@ This returns a dictionary of only the duplicates and their counts. Want me to ad
       <h2>Ready to think <span class="accent">bigger?</span></h2>
       <p>Join millions of people who use ValueAI every day to work smarter, write better, and build faster. No card, no catch.</p>
       <div class="cta-btns">
-        <a href="#signup" onclick="navigate('signup');return false;" class="btn-hero">Create free account →</a>
-        <a href="#chat" onclick="navigate('chat');return false;" class="btn-hero-ghost">Try without signing up</a>
+        <a href='#signup' onclick="navigate('signup');return false;" class="btn-hero">Create free account →</a>
+        <a href='#chat' onclick="navigate('chat');return false;" class="btn-hero-ghost">Try without signing up</a>
       </div>
     </div>
   </div>
@@ -806,7 +855,7 @@ This returns a dictionary of only the duplicates and their counts. Want me to ad
 <footer>
   <div class="footer-grid">
     <div class="footer-brand">
-      <a href="#home" onclick="navigate('home');return false;" class="nav-logo" style="text-decoration:none">
+      <a href='#home' onclick="navigate('home');return false;" class="nav-logo" style="text-decoration:none">
         <div class="logo-mark">V</div>
         <span class="logo-text">ValueAI</span>
       </a>
@@ -814,16 +863,16 @@ This returns a dictionary of only the duplicates and their counts. Want me to ad
     </div>
     <div class="footer-col">
       <h5>Product</h5>
-      <a href="#chat" onclick="navigate('chat');return false;">ValueAI Chat</a>
-      <a href="#pricing" onclick="navigate('pricing');return false;">Pricing</a>
+      <a href='#chat' onclick="navigate('chat');return false;">ValueAI Chat</a>
+      <a href='#pricing' onclick="navigate('pricing');return false;">Pricing</a>
       <a href="api.html">API</a>
       <a href="#">iOS App</a>
       <a href="#">Android App</a>
     </div>
     <div class="footer-col">
       <h5>Company</h5>
-      <a href="#company" onclick="navigate('company');return false;">About</a>
-      <a href="#research" onclick="navigate('research');return false;">Research</a>
+      <a href='#company' onclick="navigate('company');return false;">About</a>
+      <a href='#research' onclick="navigate('research');return false;">Research</a>
       <a href="#">Careers</a>
       <a href="#">Blog</a>
       <a href="#">Press</a>
@@ -851,7 +900,7 @@ This returns a dictionary of only the duplicates and their counts. Want me to ad
 <!-- Sidebar -->
 <aside class="sidebar">
   <div class="sidebar-top">
-    <a href="#home" onclick="navigate('home');return false;" class="logo-wrap">
+    <a href='#home' onclick="navigate('home');return false;" class="logo-wrap">
       <div class="logo-mark">V</div>
       <span class="logo-text">ValueAI</span>
     </a>
@@ -946,190 +995,6 @@ This returns a dictionary of only the duplicates and their counts. Want me to ad
     </div>
   </div>
 </div>
-
-<script>
-let isTyping = false;
-let typingTimeout = null;
-let messageCount = 0;
-
-const responses = [
-  `That's a great question. Let me break it down clearly.\n\nThe core concept here involves several interconnected ideas. First, you'll want to consider the underlying principles that govern the system. Second, there are practical implications that emerge when you apply those principles at scale.\n\nHere's a concrete example to illustrate:\n\n<code>example = "This is how it works in practice"</code>\n\nWould you like me to go deeper on any particular aspect of this?`,
-  `Sure! Here's a clean approach to that:\n\n<pre><code>def solution(input_data):\n    # Process and transform\n    result = [x for x in input_data if x]\n    return sorted(result, key=lambda x: x[0])</code></pre>\n\nThis handles edge cases gracefully and runs in O(n log n) time. A few things to note:\n\n• The list comprehension filters out falsy values first\n• Sorting by the first element keeps things predictable\n• You can extend this with custom comparators\n\nWant me to add error handling or unit tests?`,
-  `Great thinking. Here's how I'd approach this:\n\n**Step 1** — Define your core objective clearly. Vague goals produce vague results.\n\n**Step 2** — Map the constraints. What can't change? What must you work within?\n\n**Step 3** — Identify the leverage points where small changes produce big outcomes.\n\nThis framework applies whether you're tackling a technical problem, a strategic decision, or a creative challenge. The key is resisting the urge to jump to solutions before you fully understand the shape of the problem.\n\nShall I apply this to your specific situation?`,
-  `Absolutely. The research on this is quite clear, though there are some important nuances worth understanding.\n\nThe mainstream view holds that this operates through a well-established mechanism. However, recent studies have challenged some assumptions — particularly around edge cases and scale effects.\n\nFor your purposes, the practical takeaway is: **the principle holds reliably under normal conditions**, but you should be aware of the exceptions if you're working at extremes.\n\nI can point you toward the most credible sources if you want to dig deeper. What's driving your interest in this area?`,
-  `Here's a polished version:\n\n---\n\n*The approach you're describing reflects a sophisticated understanding of the trade-offs involved. Rather than optimizing for a single metric, you're building resilience into the system at multiple levels.*\n\n---\n\nI've kept your core argument intact but sharpened the language and improved the flow. The structure now leads with the strongest claim and builds evidence from there. Let me know if you'd like a different tone — more formal, more punchy, or somewhere in between.`
-];
-
-let responseIndex = 0;
-
-function autoGrow(el) {
-  el.style.height = 'auto';
-  el.style.height = Math.min(el.scrollHeight, 200) + 'px';
-}
-
-function handleKey(e) {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    sendMessage();
-  }
-}
-
-function useSuggestion(text) {
-  document.getElementById('userInput').value = text;
-  sendMessage();
-}
-
-function resetChat() {
-  document.getElementById('thread').innerHTML = '';
-  document.getElementById('thread').style.display = 'none';
-  document.getElementById('welcome').style.display = 'flex';
-  document.querySelectorAll('.conv-item').forEach(i => i.classList.remove('active'));
-  document.querySelector('.conv-item').classList.add('active');
-  messageCount = 0;
-}
-
-function loadConv(el, title) {
-  document.querySelectorAll('.conv-item').forEach(i => i.classList.remove('active'));
-  el.classList.add('active');
-  resetToThread();
-  addMessage('user', `Tell me about: ${title}`);
-  showTyping();
-  setTimeout(() => {
-    removeTyping();
-    addMessage('ai', responses[responseIndex % responses.length]);
-    responseIndex++;
-  }, 1200);
-}
-
-function resetToThread() {
-  document.getElementById('welcome').style.display = 'none';
-  document.getElementById('thread').style.display = 'flex';
-  document.getElementById('thread').innerHTML = '';
-  messageCount = 0;
-}
-
-function sendMessage() {
-  const input = document.getElementById('userInput');
-  const text = input.value.trim();
-  if (!text || isTyping) return;
-
-  document.getElementById('welcome').style.display = 'none';
-  document.getElementById('thread').style.display = 'flex';
-
-  addMessage('user', text);
-  input.value = '';
-  input.style.height = 'auto';
-
-  // Update sidebar if first message
-  if (messageCount === 1) {
-    const preview = text.length > 36 ? text.slice(0, 36) + '…' : text;
-    const item = document.querySelector('.conv-item.active .conv-txt');
-    if (item) item.textContent = preview;
-  }
-
-  showTyping();
-  isTyping = true;
-  document.getElementById('stopBtn').style.display = 'block';
-  document.getElementById('sendBtn').disabled = true;
-
-  const delay = 800 + Math.random() * 1000;
-  typingTimeout = setTimeout(() => {
-    removeTyping();
-    addMessage('ai', responses[responseIndex % responses.length]);
-    responseIndex++;
-    isTyping = false;
-    document.getElementById('stopBtn').style.display = 'none';
-    document.getElementById('sendBtn').disabled = false;
-  }, delay);
-}
-
-function stopTyping() {
-  clearTimeout(typingTimeout);
-  removeTyping();
-  isTyping = false;
-  document.getElementById('stopBtn').style.display = 'none';
-  document.getElementById('sendBtn').disabled = false;
-}
-
-function addMessage(role, text) {
-  messageCount++;
-  const thread = document.getElementById('thread');
-  const group = document.createElement('div');
-  group.className = 'msg-group';
-
-  const row = document.createElement('div');
-  row.className = `msg-row ${role}`;
-
-  const avatar = document.createElement('div');
-  avatar.className = `msg-avatar ${role}`;
-  avatar.textContent = role === 'ai' ? 'V' : 'U';
-
-  const bubble = document.createElement('div');
-  bubble.className = `bubble ${role}`;
-
-  // Render simple markdown-ish
-  let html = text
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/<pre><code>([\s\S]*?)<\/code><\/pre>/g, (m, c) => `<pre><code>${c}</code></pre>`)
-    .replace(/•\s(.+)/g, '<span style="display:block;padding-left:.5rem">• $1</span>')
-    .replace(/\n/g, '<br>');
-
-  bubble.innerHTML = html;
-
-  row.appendChild(avatar);
-  row.appendChild(bubble);
-  group.appendChild(row);
-
-  if (role === 'ai') {
-    const actions = document.createElement('div');
-    actions.className = 'msg-actions';
-    actions.innerHTML = `
-      <button class="msg-action" onclick="copyMsg(this)">📋 Copy</button>
-      <button class="msg-action">👍</button>
-      <button class="msg-action">👎</button>
-      <button class="msg-action">↻ Retry</button>
-    `;
-    group.appendChild(actions);
-  }
-
-  thread.appendChild(group);
-  thread.scrollTop = thread.scrollHeight;
-}
-
-function showTyping() {
-  const thread = document.getElementById('thread');
-  const wrap = document.createElement('div');
-  wrap.id = 'typingWrap';
-  wrap.className = 'msg-group';
-  const row = document.createElement('div');
-  row.className = 'msg-row';
-  const av = document.createElement('div');
-  av.className = 'msg-avatar ai';
-  av.textContent = 'V';
-  const ind = document.createElement('div');
-  ind.className = 'typing-indicator';
-  ind.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
-  row.appendChild(av);
-  row.appendChild(ind);
-  wrap.appendChild(row);
-  thread.appendChild(wrap);
-  thread.scrollTop = thread.scrollHeight;
-}
-
-function removeTyping() {
-  const t = document.getElementById('typingWrap');
-  if (t) t.remove();
-}
-
-function copyMsg(btn) {
-  const bubble = btn.closest('.msg-group').querySelector('.bubble');
-  navigator.clipboard.writeText(bubble.innerText).then(() => {
-    btn.textContent = '✓ Copied';
-    setTimeout(() => btn.textContent = '📋 Copy', 1500);
-  });
-}
-</script>
 </div>
 <div id="view-pricing" class="spa-view" data-page="pricing">
 <div class="bg-grid"></div>
@@ -1137,19 +1002,19 @@ function copyMsg(btn) {
 <div class="orb orb2"></div>
 
 <nav>
-  <a href="#home" onclick="navigate('home');return false;" class="nav-logo">
+  <a href='#home' onclick="navigate('home');return false;" class="nav-logo">
     <div class="logo-mark">V</div>
     <span class="logo-text">ValueAI</span>
   </a>
   <div class="nav-links">
-    <a href="#home" onclick="navigate('home','features');return false;">Features</a>
-    <a href="#pricing" onclick="navigate('pricing');return false;" style="color:var(--text)">Pricing</a>
-    <a href="#home" onclick="navigate('home','usecases');return false;">Use cases</a>
-    <a href="#company" onclick="navigate('company');return false;">Company</a>
+    <a href='#home' onclick="navigate('home','features');return false;">Features</a>
+    <a href='#pricing' onclick="navigate('pricing');return false;" style="color:var(--text)">Pricing</a>
+    <a href='#home' onclick="navigate('home','usecases');return false;">Use cases</a>
+    <a href='#company' onclick="navigate('company');return false;">Company</a>
   </div>
   <div class="nav-cta">
-    <a href="#login" onclick="navigate('login');return false;" class="btn-ghost">Log in</a>
-    <a href="#signup" onclick="navigate('signup');return false;" class="btn-primary">Start free</a>
+    <a href='#login' onclick="navigate('login');return false;" class="btn-ghost">Log in</a>
+    <a href='#signup' onclick="navigate('signup');return false;" class="btn-primary">Start free</a>
   </div>
 </nav>
 
@@ -1172,7 +1037,7 @@ function copyMsg(btn) {
         <div class="plan-old-price">Was free — still free</div>
       </div>
       <div class="plan-desc">For individuals exploring AI-assisted work. Full capability from day one.</div>
-      <a href="#signup" onclick="navigate('signup');return false;" class="plan-cta">Get started free</a>
+      <a href='#signup' onclick="navigate('signup');return false;" class="plan-cta">Get started free</a>
       <div class="plan-divider"></div>
       <div class="plan-features">
         <div class="pf"><span class="pf-check">✓</span>Unlimited messages</div>
@@ -1195,7 +1060,7 @@ function copyMsg(btn) {
         <div class="plan-old-price">Others charge $20/mo</div>
       </div>
       <div class="plan-desc">Everything in Personal, plus priority access, extended usage, and advanced tools.</div>
-      <a href="#signup" onclick="navigate('signup');return false;" class="plan-cta">Start Pro — free</a>
+      <a href='#signup' onclick="navigate('signup');return false;" class="plan-cta">Start Pro — free</a>
       <div class="plan-divider"></div>
       <div class="plan-features">
         <div class="pf"><span class="pf-check">✓</span>Everything in Personal</div>
@@ -1218,7 +1083,7 @@ function copyMsg(btn) {
         <div class="plan-old-price">Others charge $25–$60/seat</div>
       </div>
       <div class="plan-desc">Collaboration features, admin controls, and enterprise-grade security for your whole org.</div>
-      <a href="#signup" onclick="navigate('signup');return false;" class="plan-cta">Start your team free</a>
+      <a href='#signup' onclick="navigate('signup');return false;" class="plan-cta">Start your team free</a>
       <div class="plan-divider"></div>
       <div class="plan-features">
         <div class="pf"><span class="pf-check">✓</span>Everything in Pro</div>
@@ -1293,27 +1158,21 @@ function copyMsg(btn) {
     </div>
   </div>
 </main>
-
-<script>
-function toggleFaq(el) {
-  el.classList.toggle('open');
-}
-</script>
 </div>
 <div id="view-signup" class="spa-view" data-page="signup">
 <div class="bg-grid"></div>
 <div class="orb orb1"></div>
 <div class="orb orb2"></div>
-<a href="#home" onclick="navigate('home');return false;" class="back">← Back to ValueAI</a>
+<a href='#home' onclick="navigate('home');return false;" class="back">← Back to ValueAI</a>
 <div class="card">
   <div class="logo-wrap"><div class="logo-mark">V</div><span class="logo-text">ValueAI</span></div>
   <h1>Create your account</h1>
   <p class="sub">All features free. No credit card needed.</p>
   <div class="free-banner">Pro plan included — completely free</div>
   <div class="oauth">
-    <a href="#chat" onclick="navigate('chat');return false;" class="oauth-btn">G &nbsp;Continue with Google</a>
-    <a href="#chat" onclick="navigate('chat');return false;" class="oauth-btn">⊞ &nbsp;Continue with Microsoft</a>
-    <a href="#chat" onclick="navigate('chat');return false;" class="oauth-btn">◆ &nbsp;Continue with Apple</a>
+    <a href='#chat' onclick="navigate('chat');return false;" class="oauth-btn">G &nbsp;Continue with Google</a>
+    <a href='#chat' onclick="navigate('chat');return false;" class="oauth-btn">⊞ &nbsp;Continue with Microsoft</a>
+    <a href='#chat' onclick="navigate('chat');return false;" class="oauth-btn">◆ &nbsp;Continue with Apple</a>
   </div>
   <div class="divider"><div class="div-line"></div><span class="div-txt">or sign up with email</span><div class="div-line"></div></div>
   <div class="row2">
@@ -1324,14 +1183,14 @@ function toggleFaq(el) {
   <div class="field"><label>Password</label><input type="password" placeholder="Min. 8 characters"></div>
   <div class="terms">By signing up you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a></div>
   <button class="submit" onclick="navigate('chat')">Create free account →</button>
-  <div class="foot">Already have an account? <a href="#login" onclick="navigate('login');return false;">Log in</a></div>
+  <div class="foot">Already have an account? <a href='#login' onclick="navigate('login');return false;">Log in</a></div>
 </div>
 </div>
 <div id="view-login" class="spa-view" data-page="login">
 <div class="bg-grid"></div>
 <div class="orb orb1"></div>
 <div class="orb orb2"></div>
-<a href="#home" onclick="navigate('home');return false;" class="back">← Back to ValueAI</a>
+<a href='#home' onclick="navigate('home');return false;" class="back">← Back to ValueAI</a>
 <div class="card">
   <div class="logo-wrap">
     <div class="logo-mark">V</div>
@@ -1340,9 +1199,9 @@ function toggleFaq(el) {
   <h1>Welcome back</h1>
   <p class="sub">Log in to your ValueAI account</p>
   <div class="oauth">
-    <a href="#chat" onclick="navigate('chat');return false;" class="oauth-btn"><span class="oauth-icon">G</span>Continue with Google</a>
-    <a href="#chat" onclick="navigate('chat');return false;" class="oauth-btn"><span class="oauth-icon">⊞</span>Continue with Microsoft</a>
-    <a href="#chat" onclick="navigate('chat');return false;" class="oauth-btn"><span class="oauth-icon">◆</span>Continue with Apple</a>
+    <a href='#chat' onclick="navigate('chat');return false;" class="oauth-btn"><span class="oauth-icon">G</span>Continue with Google</a>
+    <a href='#chat' onclick="navigate('chat');return false;" class="oauth-btn"><span class="oauth-icon">⊞</span>Continue with Microsoft</a>
+    <a href='#chat' onclick="navigate('chat');return false;" class="oauth-btn"><span class="oauth-icon">◆</span>Continue with Apple</a>
   </div>
   <div class="divider"><div class="div-line"></div><span class="div-txt">or continue with email</span><div class="div-line"></div></div>
   <div class="field">
@@ -1357,7 +1216,7 @@ function toggleFaq(el) {
     <input type="password" placeholder="••••••••" style="margin-top:.45rem">
   </div>
   <button class="submit" onclick="navigate('chat')">Log in to ValueAI</button>
-  <div class="foot">Don't have an account? <a href="#signup" onclick="navigate('signup');return false;">Sign up free</a></div>
+  <div class="foot">Don't have an account? <a href='#signup' onclick="navigate('signup');return false;">Sign up free</a></div>
 </div>
 </div>
 <div id="view-company" class="spa-view" data-page="company">
@@ -1366,19 +1225,19 @@ function toggleFaq(el) {
 <div class="orb orb2"></div>
 
 <nav>
-  <a href="#home" onclick="navigate('home');return false;" class="nav-logo">
+  <a href='#home' onclick="navigate('home');return false;" class="nav-logo">
     <div class="logo-mark">V</div>
     <span class="logo-text">ValueAI</span>
   </a>
   <div class="nav-links">
-    <a href="#home" onclick="navigate('home','features');return false;">Features</a>
-    <a href="#pricing" onclick="navigate('pricing');return false;">Pricing</a>
-    <a href="#research" onclick="navigate('research');return false;">Research</a>
-    <a href="#company" onclick="navigate('company');return false;" style="color:var(--text)">Company</a>
+    <a href='#home' onclick="navigate('home','features');return false;">Features</a>
+    <a href='#pricing' onclick="navigate('pricing');return false;">Pricing</a>
+    <a href='#research' onclick="navigate('research');return false;">Research</a>
+    <a href='#company' onclick="navigate('company');return false;" style="color:var(--text)">Company</a>
   </div>
   <div class="nav-cta">
-    <a href="#login" onclick="navigate('login');return false;" class="btn-ghost">Log in</a>
-    <a href="#signup" onclick="navigate('signup');return false;" class="btn-primary">Start free</a>
+    <a href='#login' onclick="navigate('login');return false;" class="btn-ghost">Log in</a>
+    <a href='#signup' onclick="navigate('signup');return false;" class="btn-primary">Start free</a>
   </div>
 </nav>
 
@@ -1433,19 +1292,19 @@ function toggleFaq(el) {
 <div class="orb orb2"></div>
 
 <nav>
-  <a href="#home" onclick="navigate('home');return false;" class="nav-logo">
+  <a href='#home' onclick="navigate('home');return false;" class="nav-logo">
     <div class="logo-mark">V</div>
     <span class="logo-text">ValueAI</span>
   </a>
   <div class="nav-links">
-    <a href="#home" onclick="navigate('home','features');return false;">Features</a>
-    <a href="#pricing" onclick="navigate('pricing');return false;">Pricing</a>
-    <a href="#research" onclick="navigate('research');return false;" class="active">Research</a>
-    <a href="#company" onclick="navigate('company');return false;">Company</a>
+    <a href='#home' onclick="navigate('home','features');return false;">Features</a>
+    <a href='#pricing' onclick="navigate('pricing');return false;">Pricing</a>
+    <a href='#research' onclick="navigate('research');return false;" class="active">Research</a>
+    <a href='#company' onclick="navigate('company');return false;">Company</a>
   </div>
   <div class="nav-cta">
-    <a href="#login" onclick="navigate('login');return false;" class="btn-ghost">Log in</a>
-    <a href="#signup" onclick="navigate('signup');return false;" class="btn-primary">Start free</a>
+    <a href='#login' onclick="navigate('login');return false;" class="btn-ghost">Log in</a>
+    <a href='#signup' onclick="navigate('signup');return false;" class="btn-primary">Start free</a>
   </div>
 </nav>
 
@@ -1513,7 +1372,8 @@ function toggleFaq(el) {
   </div>
 </main>
 </div>
-<script id="script-chat" class="page-script" data-page="chat">
+<script>/* chat page script */
+
 let isTyping = false;
 let typingTimeout = null;
 let messageCount = 0;
@@ -1695,351 +1555,286 @@ function copyMsg(btn) {
     setTimeout(() => btn.textContent = '📋 Copy', 1500);
   });
 }
+
 </script>
-<script id="script-pricing" class="page-script" data-page="pricing">
+<script>/* pricing page script */
+
 function toggleFaq(el) {
   el.classList.toggle('open');
 }
+
 </script>
 <script>
-// ── SPA Router ──
-const PAGE_TITLES = {
-  home:'ValueAI – AI that thinks with you',
-  chat:'ValueAI – Chat',
-  pricing:'ValueAI – Pricing',
-  signup:'ValueAI – Create your account',
-  login:'ValueAI – Log in',
-  company:'ValueAI – Company',
-  research:'ValueAI – Research'
-};
+// === SPA Router ===
+const TITLES = {"home": "ValueAI – AI that thinks with you", "chat": "ValueAI – Chat", "pricing": "ValueAI – Pricing", "signup": "ValueAI – Create your account", "login": "ValueAI – Log in", "company": "ValueAI – Company", "research": "ValueAI – Research"};
+let currentPage = null;
 
 function navigate(page, anchor) {
+  if(currentPage === page && !anchor) return;
+  currentPage = page;
+
+  // Switch views
   document.querySelectorAll('.spa-view').forEach(v => v.classList.remove('active'));
-  document.querySelectorAll('.page-style').forEach(s => { s.disabled=true; s.style.display='none'; });
-  const view = document.getElementById('view-'+page);
-  const style = document.getElementById('style-'+page);
-  if(view) view.classList.add('active');
-  if(style){ style.disabled=false; style.style.display=''; }
-  document.title = PAGE_TITLES[page] || 'ValueAI';
-  history.pushState({page}, '', '#'+page);
-  window.scrollTo(0,0);
-  if(anchor){ setTimeout(()=>{ const el=document.getElementById(anchor); if(el) el.scrollIntoView({behavior:'smooth'}); },50); }
-  reinitPage(page);
-  closeMobDrawer();
-  if(typeof attachOwnerTrigger==='function') attachOwnerTrigger();
-}
+  document.querySelectorAll('.page-style').forEach(s => { s.disabled = true; s.style.display = 'none'; });
+  const view  = document.getElementById('view-'  + page);
+  const style = document.getElementById('style-' + page);
+  if(view)  view.classList.add('active');
+  if(style) { style.disabled = false; style.style.display = ''; }
 
-function reinitPage(page) {
-  if(page==='chat'){
-    const welcome=document.getElementById('welcome');
-    const thread=document.getElementById('thread');
-    if(welcome) welcome.style.display='flex';
-    if(thread){ thread.style.display='none'; thread.innerHTML=''; }
+  document.title = TITLES[page] || 'ValueAI';
+  history.pushState({page}, '', '#' + page);
+  window.scrollTo(0, 0);
+
+  if(anchor) {
+    setTimeout(() => {
+      const el = document.getElementById(anchor);
+      if(el) el.scrollIntoView({behavior:'smooth'});
+    }, 80);
   }
+
+  closeDrw();
+  injectHamburgers();
+  if(page === 'chat') resetChat();
+  if(typeof window.attachOwnerTrigger === 'function') window.attachOwnerTrigger();
 }
 
-window.addEventListener('popstate', (e)=>{
-  const page = e.state&&e.state.page ? e.state.page : 'home';
-  navigate(page);
+window.addEventListener('popstate', e => {
+  navigate((e.state && e.state.page) || 'home');
 });
 
-(function boot(){
-  const hash = location.hash.replace('#','') || 'home';
-  const valid = ['home','chat','pricing','signup','login','company','research'];
-  navigate(valid.includes(hash) ? hash : 'home');
+// Boot
+(function() {
+  const h = location.hash.replace('#','');
+  const valid = ['home', 'chat', 'pricing', 'signup', 'login', 'company', 'research'];
+  navigate(valid.includes(h) ? h : 'home');
 })();
+
+// Drawer
+function openDrw()  { document.getElementById('mob-drawer').classList.add('open'); }
+function closeDrw() { document.getElementById('mob-drawer').classList.remove('open'); }
+
+// Inject hamburger into every nav that needs one
+function injectHamburgers() {
+  setTimeout(() => {
+    document.querySelectorAll('.spa-view.active nav, #view-home nav, #view-pricing nav, #view-company nav, #view-research nav').forEach(nav => {
+      if(!nav.querySelector('.mob-ham')) {
+        const btn = document.createElement('button');
+        btn.className = 'mob-ham';
+        btn.setAttribute('aria-label','Open menu');
+        btn.onclick = openDrw;
+        btn.innerHTML = '<span></span><span></span><span></span>';
+        nav.appendChild(btn);
+      }
+    });
+    // Chat page top bar burger
+    const chatBar = document.querySelector('#view-chat .chat-topbar');
+    if(chatBar && !chatBar.querySelector('.mob-ham')) {
+      const btn = document.createElement('button');
+      btn.className = 'mob-ham';
+      btn.setAttribute('aria-label','Open menu');
+      btn.onclick = openDrw;
+      btn.innerHTML = '<span></span><span></span><span></span>';
+      btn.style.marginLeft = '0';
+      chatBar.insertBefore(btn, chatBar.firstChild);
+    }
+  }, 30);
+}
+
+// Auth pages have no nav — inject a back link area burger
+function injectAuthHam() {
+  ['signup','login'].forEach(name => {
+    const view = document.getElementById('view-' + name);
+    if(!view) return;
+    if(!view.querySelector('.mob-ham')) {
+      const btn = document.createElement('button');
+      btn.className = 'mob-ham';
+      btn.setAttribute('aria-label','Open menu');
+      btn.onclick = openDrw;
+      btn.innerHTML = '<span></span><span></span><span></span>';
+      btn.style.cssText = 'position:fixed;top:1rem;right:1rem;z-index:50';
+      view.appendChild(btn);
+    }
+  });
+}
 </script>
-
-<!-- Mobile hamburger drawer -->
-<div id="mob-drawer">
-  <button id="mob-close" onclick="closeMobDrawer()">✕</button>
-  <a href="#home" onclick="navigate('home');return false;">Home</a>
-  <a href="#pricing" onclick="navigate('pricing');return false;">Pricing</a>
-  <a href="#research" onclick="navigate('research');return false;">Research</a>
-  <a href="#company" onclick="navigate('company');return false;">Company</a>
-  <a href="#chat" onclick="navigate('chat');return false;">Try ValueAI</a>
-  <a href="#login" onclick="navigate('login');return false;">Log in</a>
-  <a href="#signup" onclick="navigate('signup');return false;">Sign up free</a>
-</div>
-
 <script>
-function openMobDrawer(){ document.getElementById('mob-drawer').classList.add('open'); }
-function closeMobDrawer(){ document.getElementById('mob-drawer').classList.remove('open'); }
-</script>
-
-<script>
-/* ValueAI Owner Panel — v2 */
+/* ValueAI Owner Panel v3 */
 (function(){
-  const PASS = 'V@lu3#9X!';
-  let clickCount=0, clickTimer=null, unlocked=false, editMode=false, activeEl=null, origBg='';
+  const PASS = 'V@lu3786';
+  let unlocked=false, editMode=false, activeEl=null, origBg='';
 
-  /* ── Triple-click logo trigger ── */
+  /* Triple-click V logo */
   function attachTrigger(){
-    document.querySelectorAll('.logo-mark').forEach(m=>{
-      m.style.cursor='pointer';
-      m.addEventListener('click', function(e){
+    document.querySelectorAll('.logo-mark,.welcome-logo').forEach(m=>{
+      if(m._opBound) return;
+      m._opBound = true;
+      let clicks=0, t=null;
+      m.addEventListener('click', e=>{
         e.preventDefault(); e.stopPropagation();
-        clickCount++;
-        clearTimeout(clickTimer);
-        if(clickCount>=3){ clickCount=0; showLogin(); return; }
-        clickTimer=setTimeout(()=>{ clickCount=0; },600);
+        clicks++;
+        clearTimeout(t);
+        if(clicks>=3){ clicks=0; unlocked?showPanel():showLogin(); return; }
+        t=setTimeout(()=>clicks=0, 600);
       });
     });
   }
 
-  /* ── Login ── */
   function showLogin(){
-    if(unlocked){ showPanel(); return; }
     if(document.getElementById('op-login')) return;
     const ov=document.createElement('div');
     ov.id='op-login';
-    ov.innerHTML=`<div id="op-login-box">
-      <div id="op-login-logo">⚙</div>
-      <div id="op-login-title">Owner Access</div>
-      <input type="password" id="op-pw-input" placeholder="Password" autocomplete="off"/>
-      <div id="op-pw-err"></div>
-      <button id="op-pw-btn">Unlock →</button>
-      <button id="op-cancel-btn">Cancel</button>
+    ov.innerHTML=`<div id="op-box">
+      <div style="font-size:2rem;margin-bottom:.5rem">⚙</div>
+      <div id="op-ttl">Owner Access</div>
+      <input type="password" id="op-pw" placeholder="Password" autocomplete="off"/>
+      <div id="op-err"></div>
+      <button id="op-ok">Unlock →</button>
+      <button id="op-cx">Cancel</button>
     </div>`;
     document.body.appendChild(ov);
-    const input=document.getElementById('op-pw-input');
-    const err=document.getElementById('op-pw-err');
-    setTimeout(()=>input.focus(),50);
-    document.getElementById('op-pw-btn').onclick=attempt;
-    input.addEventListener('keydown',e=>{ if(e.key==='Enter') attempt(); });
-    document.getElementById('op-cancel-btn').onclick=()=>ov.remove();
-    function attempt(){
-      if(input.value===PASS){ unlocked=true; ov.remove(); showPanel(); }
-      else{ err.textContent='Wrong password.'; input.value=''; input.focus(); }
-    }
+    const pw=document.getElementById('op-pw');
+    setTimeout(()=>pw.focus(),60);
+    const go=()=>{
+      if(pw.value===PASS){ unlocked=true; ov.remove(); showPanel(); }
+      else{ document.getElementById('op-err').textContent='Wrong password.'; pw.value=''; pw.focus(); }
+    };
+    document.getElementById('op-ok').onclick=go;
+    pw.addEventListener('keydown',e=>{ if(e.key==='Enter') go(); });
+    document.getElementById('op-cx').onclick=()=>ov.remove();
   }
 
-  /* ── Panel (stays open across page changes) ── */
   function showPanel(){
     if(document.getElementById('op-panel')) return;
-    const panel=document.createElement('div');
-    panel.id='op-panel';
-    panel.innerHTML=`
-      <div id="op-header">
-        <span id="op-title">⚙ Owner</span>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-          <button class="op-hdr-btn" id="op-edit-toggle">✏️ Edit: OFF</button>
-          <button class="op-hdr-btn" id="op-color-toggle">🎨 Colors</button>
-          <button class="op-hdr-btn" id="op-ai-btn">🤖 AI Chat</button>
-          <button class="op-hdr-btn" id="op-close">✕</button>
+    const p=document.createElement('div');
+    p.id='op-panel';
+    p.innerHTML=`
+      <div id="op-hdr">
+        <span id="op-lbl">⚙ Owner</span>
+        <div id="op-btns">
+          <button class="opb" id="op-edt">✏️ Edit OFF</button>
+          <button class="opb" id="op-clr">🎨 Colours</button>
+          <button class="opb" id="op-ai">🤖 AI Help</button>
+          <button class="opb" id="op-x">✕</button>
         </div>
       </div>
-      <div id="op-color-panel" style="display:none">
-        <div class="op-color-row"><label>Background</label><input type="color" data-var="--bg" value="#02020a"/></div>
-        <div class="op-color-row"><label>Surface</label><input type="color" data-var="--bg3" value="#0c0c1e"/></div>
-        <div class="op-color-row"><label>Cyan accent</label><input type="color" data-var="--cyan" value="#00f5ff"/></div>
-        <div class="op-color-row"><label>Violet</label><input type="color" data-var="--violet" value="#8b5cf6"/></div>
-        <div class="op-color-row"><label>Pink</label><input type="color" data-var="--pink" value="#f472b6"/></div>
-        <div class="op-color-row"><label>Emerald</label><input type="color" data-var="--emerald" value="#34d399"/></div>
-        <div class="op-color-row"><label>Text</label><input type="color" data-var="--text" value="#f0f0ff"/></div>
-        <button class="op-action-btn" id="op-reset-colors">Reset Colors</button>
+      <div id="op-clrp" style="display:none">
+        <div class="ocr"><label>Background</label><input type="color" data-v="--bg" value="#02020a"/></div>
+        <div class="ocr"><label>Surface</label><input type="color" data-v="--bg3" value="#0c0c1e"/></div>
+        <div class="ocr"><label>Cyan</label><input type="color" data-v="--cyan" value="#00f5ff"/></div>
+        <div class="ocr"><label>Violet</label><input type="color" data-v="--violet" value="#8b5cf6"/></div>
+        <div class="ocr"><label>Pink</label><input type="color" data-v="--pink" value="#f472b6"/></div>
+        <div class="ocr"><label>Emerald</label><input type="color" data-v="--emerald" value="#34d399"/></div>
+        <div class="ocr"><label>Text</label><input type="color" data-v="--text" value="#f0f0ff"/></div>
+        <button class="opb" id="op-rst">Reset</button>
       </div>
-      <div id="op-ai-panel" style="display:none">
-        <div id="op-ai-msgs"></div>
-        <div style="display:flex;gap:6px;margin-top:6px">
-          <input type="text" id="op-ai-input" placeholder="Ask AI to help edit your site…" style="flex:1;background:#070714;border:1px solid rgba(0,245,255,0.2);border-radius:8px;padding:.4rem .7rem;color:#f0f0ff;font-size:13px;outline:none"/>
-          <button class="op-hdr-btn" id="op-ai-send">Send</button>
+      <div id="op-aip" style="display:none">
+        <div id="op-aim"></div>
+        <div style="display:flex;gap:6px;margin-top:5px">
+          <input id="op-aii" type="text" placeholder="Ask AI about your site…"/>
+          <button class="opb" id="op-ais">→</button>
         </div>
       </div>`;
-    document.body.appendChild(panel);
+    document.body.appendChild(p);
 
-    /* Close — stays logged in, just hides panel */
-    document.getElementById('op-close').onclick=()=>{
-      disableEdit();
-      panel.remove();
-    };
+    /* Close — stays logged in */
+    document.getElementById('op-x').onclick=()=>{ disableEdit(); p.remove(); };
 
     /* Edit toggle */
-    const editBtn=document.getElementById('op-edit-toggle');
-    editBtn.onclick=()=>{
-      if(editMode){ disableEdit(); editBtn.textContent='✏️ Edit: OFF'; editBtn.style.borderColor=''; }
-      else{ enableEdit(); editBtn.textContent='✏️ Edit: ON'; editBtn.style.borderColor='rgba(0,245,255,0.6)'; }
+    const eBtn=document.getElementById('op-edt');
+    eBtn.onclick=()=>{
+      editMode=!editMode;
+      editMode ? enableEdit() : disableEdit();
+      eBtn.textContent = editMode ? '✏️ Edit ON' : '✏️ Edit OFF';
+      eBtn.style.color  = editMode ? '#00f5ff' : '';
     };
 
-    /* Color panel */
-    const colorPanel=document.getElementById('op-color-panel');
-    document.getElementById('op-color-toggle').onclick=()=>{
-      colorPanel.style.display=colorPanel.style.display==='none'?'block':'none';
-      document.getElementById('op-ai-panel').style.display='none';
-    };
+    /* Colours */
+    const clrp=document.getElementById('op-clrp'), aip=document.getElementById('op-aip');
+    document.getElementById('op-clr').onclick=()=>{ clrp.style.display=clrp.style.display==='none'?'block':'none'; aip.style.display='none'; };
     const root=document.documentElement;
-    colorPanel.querySelectorAll('input[type=color]').forEach(inp=>{
-      inp.addEventListener('input',()=>{ root.style.setProperty(inp.dataset.var,inp.value); });
-    });
-    const defaults={'--bg':'#02020a','--bg3':'#0c0c1e','--cyan':'#00f5ff','--violet':'#8b5cf6','--pink':'#f472b6','--emerald':'#34d399','--text':'#f0f0ff'};
-    document.getElementById('op-reset-colors').onclick=()=>{
-      Object.entries(defaults).forEach(([k,v])=>{ root.style.setProperty(k,v); colorPanel.querySelector(`input[data-var="${k}"]`).value=v; });
-    };
+    clrp.querySelectorAll('input[type=color]').forEach(i=>i.addEventListener('input',()=>root.style.setProperty(i.dataset.v,i.value)));
+    const defs={'--bg':'#02020a','--bg3':'#0c0c1e','--cyan':'#00f5ff','--violet':'#8b5cf6','--pink':'#f472b6','--emerald':'#34d399','--text':'#f0f0ff'};
+    document.getElementById('op-rst').onclick=()=>{ Object.entries(defs).forEach(([k,v])=>{ root.style.setProperty(k,v); clrp.querySelector(`[data-v="${k}"]`).value=v; }); };
 
-    /* AI Chat panel */
-    const aiPanel=document.getElementById('op-ai-panel');
-    document.getElementById('op-ai-btn').onclick=()=>{
-      aiPanel.style.display=aiPanel.style.display==='none'?'block':'none';
-      colorPanel.style.display='none';
-    };
-    document.getElementById('op-ai-send').onclick=sendAI;
-    document.getElementById('op-ai-input').addEventListener('keydown',e=>{ if(e.key==='Enter') sendAI(); });
-
-    async function sendAI(){
-      const input=document.getElementById('op-ai-input');
-      const msgs=document.getElementById('op-ai-msgs');
-      const text=input.value.trim();
-      if(!text) return;
-      input.value='';
-      addAIMsg('you',text);
-      addAIMsg('ai','...',true);
+    /* AI Help */
+    document.getElementById('op-ai').onclick=()=>{ aip.style.display=aip.style.display==='none'?'block':'none'; clrp.style.display='none'; };
+    const send=async()=>{
+      const inp=document.getElementById('op-aii'), aim=document.getElementById('op-aim');
+      const txt=inp.value.trim(); if(!txt) return; inp.value='';
+      aim.innerHTML+=`<div class="opm"><b>You:</b> ${txt}</div>`;
+      aim.innerHTML+=`<div class="opm op-wait"><b>AI:</b> thinking…</div>`;
+      aim.scrollTop=aim.scrollHeight;
       try{
-        const res=await fetch('https://api.anthropic.com/v1/messages',{
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({
-            model:'claude-sonnet-4-20250514',
-            max_tokens:1000,
-            system:'You are a helpful assistant for a website owner. Give short, practical advice about editing website text and colours. Be concise.',
-            messages:[{role:'user',content:text}]
-          })
-        });
-        const data=await res.json();
-        const reply=data.content?.[0]?.text||'Sorry, no response.';
-        removeLastAIMsg();
-        addAIMsg('ai',reply);
-      }catch(err){
-        removeLastAIMsg();
-        addAIMsg('ai','Error contacting AI. Try again.');
-      }
-    }
-
-    function addAIMsg(role,text,temp){
-      const msgs=document.getElementById('op-ai-msgs');
-      const d=document.createElement('div');
-      d.className='op-ai-msg'+(temp?' op-ai-temp':'');
-      d.innerHTML=`<span class="op-ai-role">${role==='you'?'You':'AI'}</span> ${text}`;
-      msgs.appendChild(d);
-      msgs.scrollTop=msgs.scrollHeight;
-    }
-    function removeLastAIMsg(){
-      const msgs=document.getElementById('op-ai-msgs');
-      const temp=msgs.querySelector('.op-ai-temp');
-      if(temp) temp.remove();
-    }
+        const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:500,system:'You are a helpful assistant for a website owner. Give short practical advice. Be concise.',messages:[{role:'user',content:txt}]})});
+        const d=await r.json();
+        const reply=d.content?.[0]?.text||'No response.';
+        aim.querySelector('.op-wait').innerHTML=`<b>AI:</b> ${reply}`;
+      }catch(e){ aim.querySelector('.op-wait').innerHTML='<b>AI:</b> Error — try again.'; }
+      aim.scrollTop=aim.scrollHeight;
+    };
+    document.getElementById('op-ais').onclick=send;
+    document.getElementById('op-aii').addEventListener('keydown',e=>{ if(e.key==='Enter') send(); });
   }
 
   function enableEdit(){
-    editMode=true;
     document.body.style.cursor='text';
-    document.addEventListener('click',onPageClick,true);
+    document.addEventListener('click',onCk,true);
   }
-
   function disableEdit(){
     editMode=false;
     document.body.style.cursor='';
-    document.removeEventListener('click',onPageClick,true);
+    document.removeEventListener('click',onCk,true);
     if(activeEl){ activeEl.contentEditable='false'; activeEl.style.outline=''; activeEl.style.background=origBg; activeEl=null; }
   }
-
-  function onPageClick(e){
+  function onCk(e){
     const panel=document.getElementById('op-panel');
     if(panel&&panel.contains(e.target)) return;
-    if(activeEl&&activeEl!==e.target){
-      activeEl.contentEditable='false'; activeEl.style.outline=''; activeEl.style.background=origBg; activeEl=null;
-    }
+    if(activeEl&&activeEl!==e.target){ activeEl.contentEditable='false'; activeEl.style.outline=''; activeEl.style.background=origBg; activeEl=null; }
     let el=e.target;
     if(!['A','BUTTON'].includes(el.tagName)){
       let t=el;
-      while(t&&t!==document.body){
-        if(t.childNodes.length&&[...t.childNodes].some(n=>n.nodeType===3&&n.textContent.trim())){ el=t; break; }
-        t=t.parentElement;
-      }
+      while(t&&t!==document.body){ if([...t.childNodes].some(n=>n.nodeType===3&&n.textContent.trim())){ el=t; break; } t=t.parentElement; }
     }
-    if(!el||el===document.body||el===document.documentElement) return;
+    if(!el||el===document.body) return;
     e.preventDefault(); e.stopPropagation();
     origBg=el.style.background||'';
-    activeEl=el;
-    el.contentEditable='true';
-    el.style.outline='2px solid #00f5ff';
-    el.style.background='rgba(0,245,255,0.06)';
-    el.focus();
-    const range=document.caretRangeFromPoint?document.caretRangeFromPoint(e.clientX,e.clientY):null;
-    if(range){ const sel=window.getSelection(); sel.removeAllRanges(); sel.addRange(range); }
+    activeEl=el; el.contentEditable='true';
+    el.style.outline='2px solid #00f5ff'; el.style.background='rgba(0,245,255,0.06)'; el.focus();
+    const rng=document.caretRangeFromPoint?document.caretRangeFromPoint(e.clientX,e.clientY):null;
+    if(rng){ const s=window.getSelection(); s.removeAllRanges(); s.addRange(rng); }
   }
 
   /* Styles */
-  const s=document.createElement('style');
-  s.textContent=`
-    #op-login{position:fixed;inset:0;z-index:999999;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);padding:1rem}
-    #op-login-box{background:#0c0c1e;border:1px solid rgba(0,245,255,0.3);border-radius:20px;padding:2rem;width:100%;max-width:300px;text-align:center;box-shadow:0 0 60px rgba(0,245,255,0.15)}
-    #op-login-logo{font-size:2rem;margin-bottom:.5rem}
-    #op-login-title{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:700;color:#f0f0ff;margin-bottom:1.25rem}
-    #op-pw-input{width:100%;background:#070714;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:.7rem .9rem;font-size:15px;color:#f0f0ff;outline:none;margin-bottom:.4rem;font-family:'DM Sans',sans-serif}
-    #op-pw-err{font-size:12px;color:#f472b6;min-height:18px;margin-bottom:.4rem}
-    #op-pw-btn{width:100%;padding:.75rem;border-radius:10px;border:none;background:linear-gradient(135deg,#8b5cf6,#00f5ff);color:#02020a;font-family:'Syne',sans-serif;font-size:14px;font-weight:800;cursor:pointer;margin-bottom:.4rem}
-    #op-cancel-btn{width:100%;padding:.55rem;border-radius:10px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:rgba(200,200,240,0.5);font-size:13px;cursor:pointer}
-    #op-panel{position:fixed;top:0;left:0;right:0;z-index:99999;background:rgba(2,2,10,0.97);border-bottom:1px solid rgba(0,245,255,0.25);padding:.5rem 1rem;font-family:'DM Sans',sans-serif;backdrop-filter:blur(20px)}
-    #op-header{display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap}
-    #op-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#00f5ff}
-    .op-hdr-btn{padding:.3rem .6rem;border-radius:7px;border:1px solid rgba(0,245,255,0.2);background:transparent;color:rgba(200,200,240,0.7);font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap}
-    #op-color-panel{padding:.6rem 0 .2rem;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.4rem .5rem}
-    .op-color-row{display:flex;align-items:center;gap:.5rem}
-    .op-color-row label{font-size:11px;color:rgba(200,200,240,0.6);min-width:70px}
-    .op-color-row input[type=color]{width:30px;height:24px;border-radius:5px;border:1px solid rgba(255,255,255,0.1);background:transparent;cursor:pointer;padding:1px}
-    .op-action-btn{padding:.3rem .7rem;border-radius:7px;border:1px solid rgba(244,114,182,0.3);background:transparent;color:#f472b6;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;grid-column:1/-1;width:fit-content;margin-top:.2rem}
-    #op-ai-panel{padding:.5rem 0 .2rem}
-    #op-ai-msgs{max-height:140px;overflow-y:auto;display:flex;flex-direction:column;gap:.4rem;margin-bottom:.4rem}
-    .op-ai-msg{font-size:12px;color:rgba(200,200,240,0.8);line-height:1.5;background:rgba(255,255,255,0.03);border-radius:7px;padding:.35rem .6rem}
-    .op-ai-role{font-weight:700;color:#00f5ff;font-size:11px;margin-right:4px}
+  const st=document.createElement('style');
+  st.textContent=`
+    #op-login{position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.88);display:flex;align-items:center;justify-content:center;padding:1.5rem}
+    #op-box{background:#0c0c1e;border:1px solid rgba(0,245,255,0.3);border-radius:18px;padding:2rem 1.5rem;width:100%;max-width:300px;text-align:center}
+    #op-ttl{font-family:'Syne',sans-serif;font-size:1.15rem;font-weight:700;color:#f0f0ff;margin-bottom:1.25rem}
+    #op-pw{width:100%;background:#070714;border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:.7rem .9rem;font-size:16px;color:#f0f0ff;outline:none;margin-bottom:.4rem;-webkit-appearance:none}
+    #op-err{font-size:12px;color:#f472b6;min-height:16px;margin-bottom:.4rem}
+    #op-ok{width:100%;padding:.75rem;border-radius:10px;border:none;background:linear-gradient(135deg,#8b5cf6,#00f5ff);color:#02020a;font-family:'Syne',sans-serif;font-size:14px;font-weight:800;cursor:pointer;margin-bottom:.4rem}
+    #op-cx{width:100%;padding:.5rem;border-radius:10px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:rgba(200,200,240,0.5);font-size:13px;cursor:pointer}
+    #op-panel{position:fixed;top:0;left:0;right:0;z-index:9999;background:rgba(2,2,10,0.97);border-bottom:1px solid rgba(0,245,255,0.2);padding:.5rem .75rem;font-family:'DM Sans',sans-serif}
+    #op-hdr{display:flex;align-items:center;justify-content:space-between;gap:.4rem}
+    #op-lbl{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#00f5ff;flex-shrink:0}
+    #op-btns{display:flex;gap:.35rem;flex-wrap:wrap}
+    .opb{padding:.28rem .55rem;border-radius:6px;border:1px solid rgba(0,245,255,0.18);background:transparent;color:rgba(200,200,240,0.75);font-size:11px;cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif}
+    #op-clrp{padding:.5rem 0 .2rem;display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:.35rem}
+    .ocr{display:flex;align-items:center;gap:.4rem}
+    .ocr label{font-size:11px;color:rgba(200,200,240,0.6);min-width:65px}
+    .ocr input[type=color]{width:28px;height:22px;border-radius:4px;border:1px solid rgba(255,255,255,0.1);background:transparent;cursor:pointer;padding:1px}
+    #op-aip{padding:.5rem 0 .2rem}
+    #op-aim{max-height:120px;overflow-y:auto;display:flex;flex-direction:column;gap:.3rem;margin-bottom:.4rem}
+    .opm{font-size:12px;color:rgba(200,200,240,0.8);line-height:1.5;background:rgba(255,255,255,0.03);border-radius:6px;padding:.3rem .5rem}
+    .opm b{color:#00f5ff;font-weight:700}
+    #op-aii{flex:1;background:#070714;border:1px solid rgba(0,245,255,0.2);border-radius:7px;padding:.38rem .6rem;color:#f0f0ff;font-size:13px;outline:none;-webkit-appearance:none;min-width:0}
   `;
-  document.head.appendChild(s);
+  document.head.appendChild(st);
 
-  window.attachOwnerTrigger=attachTrigger;
-  if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded',attachTrigger);
-  } else {
-    attachTrigger();
-  }
+  window.attachOwnerTrigger = attachTrigger;
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', attachTrigger);
+  else attachTrigger();
 })();
-</script>
-
-<!-- Inject hamburger button into every nav on page load -->
-<script>
-document.addEventListener('DOMContentLoaded', function(){
-  document.querySelectorAll('nav').forEach(nav => {
-    if(!nav.querySelector('.mob-ham')){
-      const btn = document.createElement('button');
-      btn.className = 'mob-ham';
-      btn.id = 'mob-menu-btn';
-      btn.setAttribute('aria-label','Menu');
-      btn.onclick = openMobDrawer;
-      btn.innerHTML = '<span></span><span></span><span></span>';
-      btn.style.cssText = 'display:flex;flex-direction:column;gap:4px;cursor:pointer;padding:6px;background:transparent;border:none;z-index:200;margin-left:auto';
-      btn.querySelectorAll('span').forEach(s=>{ s.style.cssText='width:20px;height:2px;background:rgba(200,200,240,0.7);border-radius:2px;display:block'; });
-      nav.appendChild(btn);
-    }
-  });
-});
-// Also inject on navigate
-const _origNav = window.navigate;
-window.navigate = function(page, anchor){
-  _origNav(page, anchor);
-  setTimeout(()=>{
-    document.querySelectorAll('nav').forEach(nav=>{
-      if(!nav.querySelector('.mob-ham')){
-        const btn=document.createElement('button');
-        btn.className='mob-ham';
-        btn.setAttribute('aria-label','Menu');
-        btn.onclick=openMobDrawer;
-        btn.innerHTML='<span></span><span></span><span></span>';
-        btn.style.cssText='display:flex;flex-direction:column;gap:4px;cursor:pointer;padding:6px;background:transparent;border:none;z-index:200;margin-left:auto';
-        btn.querySelectorAll('span').forEach(s=>{ s.style.cssText='width:20px;height:2px;background:rgba(200,200,240,0.7);border-radius:2px;display:block'; });
-        nav.appendChild(btn);
-      }
-    });
-  }, 50);
-};
 </script>
 </body>
 </html>
