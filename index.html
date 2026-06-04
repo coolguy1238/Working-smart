@@ -275,7 +275,20 @@ footer{position:relative;z-index:1;border-top:1px solid var(--border);padding:3r
   .plan-compare{grid-template-columns:1fr}
   .footer-bottom{flex-direction:column;text-align:center}
 }</style>
-<style id="style-chat" class="page-style" data-page="chat" style="display:none">*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+<style id="style-chat" class="page-style" data-page="chat" style="display:none">
+/* Chat page — scoped to #view-chat so it doesn't bleed into other pages */
+#view-chat{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--font);
+  flex-direction:row;
+  overflow:hidden;
+  z-index:1;
+}
+#view-chat.active{ display:flex !important; }
 :root{
   --bg:#02020a;--bg2:#070714;--bg3:#0c0c1e;--bg4:#111128;
   --cyan:#00f5ff;--violet:#8b5cf6;--pink:#f472b6;--emerald:#34d399;
@@ -283,8 +296,6 @@ footer{position:relative;z-index:1;border-top:1px solid var(--border);padding:3r
   --text:#f0f0ff;--text2:rgba(200,200,240,0.6);--text3:rgba(200,200,240,0.3);
   --sidebar:220px;--font:'DM Sans',-apple-system,sans-serif;--font-display:'Syne',sans-serif;
 }
-html,body{height:100%;overflow:hidden}
-body{background:var(--bg);color:var(--text);font-family:var(--font);display:flex}
 
 /* ── Sidebar ── */
 .sidebar{width:var(--sidebar);flex-shrink:0;height:100vh;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
